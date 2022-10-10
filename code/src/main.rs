@@ -18,7 +18,7 @@ fn main() {
 			present_mode: PresentMode::Fifo,
 			..default()
 		})
-		.insert_resource(ClearColor(Color::rgb(255.0, 255.0, 255.0)))
+		.insert_resource(ClearColor(Color::rgb(0.0, 0.0, 0.0)))
 		.add_plugins(DefaultPlugins)
 		.add_startup_system(setup)
 		.add_system(text_input)
