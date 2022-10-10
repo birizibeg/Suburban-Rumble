@@ -21,6 +21,7 @@ fn main() {
 		.insert_resource(ClearColor(Color::rgb(0.0, 0.0, 0.0)))
 		.add_plugins(DefaultPlugins)
 		.add_startup_system(setup)
+		.add_system(text_input)
 		.add_system(show_popup)
 		.add_system(remove_popup)
 		//.add_system(trans_sprite)
@@ -125,15 +126,9 @@ fn show_popup(
 	for (mut timer, mut transform) in popup.iter_mut() {
 		timer.tick(time.delta());
 		if timer.just_finished() {
-			transform.translation.z = 2.;
-
-			
-		
-			//if transform.translation.z == 2. {
-			//} 
-		
+			transform.translation.z = 2.;		
 		}
-}
+	}
 }
 
 fn remove_popup(
@@ -145,12 +140,27 @@ fn remove_popup(
 		if timer.just_finished() {
 			vis_map.is_visible = false;
 		}
+	}
 }
-}
-//fn trans_sprite(mut sprite: Query<&mut Transform>){
-	
-//}
-//	mut transform: Transform)
-//{
 
-//}
+/// prints every char coming in; press enter to echo the full string
+fn text_input(
+    mut char_evr: EventReader<ReceivedCharacter>,
+    keys: Res<Input<KeyCode>>,
+    mut string: Local<String>,
+) {
+	for ev in char_evr.iter() {
+		if keys.just_pressed(KeyCode::Return) {
+			println!("Text input: {}", *string);
+			string.clear();	
+		} else
+		if keys.just_pressed(KeyCode::Back) {
+			string.pop();
+			println!("Text input: {}", *string);
+		} else {
+			string.push(ev.char); 
+			println!("Text input: '{}'", *string);
+		}
+	}
+}
+
