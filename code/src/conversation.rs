@@ -23,7 +23,7 @@ pub fn setup_conversation(
 	asset_server: Res<AssetServer>
 ){
     clear_color.0 = Color::DARK_GREEN;
-	let font = asset_server.load("SourceSansPro-Regular.ttf");
+	let font = asset_server.load("Fonts/SourceSansPro-Regular.ttf");
 	let text_style = TextStyle {
 		font,
         font_size: 60.0,
