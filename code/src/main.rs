@@ -3,6 +3,11 @@ use bevy::{
 	window::PresentMode,
 };
 
+mod fight;
+
+const WIN_W: f32 = 1280.;
+const WIN_H: f32 = 720.;
+
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
 enum GameState {
     Credits,
@@ -21,12 +26,12 @@ fn main() {
 	App::new()
 		.insert_resource(WindowDescriptor {
 			title: String::from("Suburban Rumble"),
-			width: 1280.,
-			height: 720.,
+			width: WIN_W,
+			height: WIN_H,
 			present_mode: PresentMode::Fifo,
 			..default()
 		})
-		.insert_resource(ClearColor(Color::rgb(0.0, 0.0, 0.0)))
+		.insert_resource(ClearColor(Color::BLACK))
 		.add_state(GameState::Credits)	//start the game in the credits state
 		.add_plugins(DefaultPlugins)
 		.add_startup_system(setup)
@@ -45,6 +50,19 @@ fn main() {
 				.with_system(clear_credits)	// remove the popups on screen when exiting the credit state
 		)
 		.add_system_set(
+			SystemSet::on_update(GameState::Fight)
+				.label("fight")
+				.with_system(fight::move_player)
+		)
+		.add_system_set(
+			SystemSet::on_enter(GameState::Fight)
+				.with_system(fight::setup_fight)
+		)
+		.add_system_set(
+			SystemSet::on_exit(GameState::Fight)
+				.with_system(fight::clear_fight)
+		)
+		.add_system_set(
 			SystemSet::on_enter(GameState::Conversation)
 				.with_system(conversation::setup_conversation)
 		)
@@ -58,14 +76,19 @@ fn main() {
 				.with_system(conversation::text_input)
 		)
 		.add_system(change_gamestate)
-		//.add_system(show_popup)
-		//.add_system(remove_popup)
-		//.add_system(trans_sprite)
 		.run();
 }
 
-fn setup(mut commands: Commands) {
+fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
 	commands.spawn_bundle(Camera2dBundle::default());
+	commands.spawn_bundle(TextBundle::from_section(
+		"Press 1 for Conversation, 2 for Fight, 3 for Credits",
+		TextStyle {
+			font: asset_server.load("fonts/SourceSansPro-Regular.ttf"),
+			font_size: 16.,
+			color: Color::WHITE,
+		}
+	));
 }
 
 fn setup_credits(mut commands: Commands, asset_server: Res<AssetServer>) {
@@ -75,20 +98,16 @@ fn setup_credits(mut commands: Commands, asset_server: Res<AssetServer>) {
 	//		texture: asset_server.load("hello_world_win.png"),
 	//		..default()
 	//	});
+
 	commands
 		.spawn_bundle(SpriteBundle {
 			texture: asset_server.load("Makayla_Miles.png"),
 			transform: Transform::from_xyz(0., 0., -1.),
 			..default()
 		})
-		//.insert(PopupTimer(Timer::from_seconds(5.0, false)));
 		.insert(PopupTimer(Timer::from_seconds(0.,false)))
 		.insert(DespawnTimer(Timer::from_seconds(3.,false)));
-		//.insert(Timer::new(5., false));
-			
-		//commands.entity(texture).despawn();
-//fn setup2(mut commands: Commands, asset_server: Res<AssetServer>) {
-	//commands.spawn_bundle(Camera2dBundle::default()); 	
+	
 	commands
 		.spawn_bundle(SpriteBundle {
 			texture: asset_server.load("adamsheelar.png"),
@@ -152,12 +171,9 @@ fn setup_credits(mut commands: Commands, asset_server: Res<AssetServer>) {
 			..default()
 		})
 		.insert(PopupTimer(Timer::from_seconds(21., false)))
-		.insert(DespawnTimer(Timer::from_seconds(24.,false)));
-		
+		.insert(DespawnTimer(Timer::from_seconds(24.,false)));		
 	info!("GameState: Credits");
 }
-
-
 
 fn show_popup(
 	time: Res<Time>,
@@ -184,7 +200,7 @@ fn remove_popup(
 }
 
 fn clear_credits(
-	mut popup: Query<&mut Visibility>
+	mut popup: Query<&mut Visibility, With<PopupTimer>>
 ) {
 	for mut vis_map in popup.iter_mut() {
 		vis_map.is_visible = false;
