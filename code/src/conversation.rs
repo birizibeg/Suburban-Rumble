@@ -90,3 +90,29 @@ pub fn clear_conversation(
 	commands.entity(enemy_eid).despawn();
 
 }
+
+/// prints every char coming in; press enter to echo the full string
+pub fn text_input(
+    mut char_evr: EventReader<ReceivedCharacter>,
+    keys: Res<Input<KeyCode>>,
+    mut string: Local<String>,
+	mut dialogue: Query<(&mut Text), With<DialogueBox>>
+) {
+	let mut dialogue_text = dialogue.single_mut();
+
+	for ev in char_evr.iter() {
+
+		if keys.just_pressed(KeyCode::Return) {
+			println!("Text input: {}", *string);
+			dialogue_text.sections[0].value = string.to_string();
+			string.clear();	
+		} else
+		if keys.just_pressed(KeyCode::Back) {
+			string.pop();
+			println!("Text input: {}", *string);
+		} else {
+			string.push(ev.char); 
+			println!("Text input: '{}'", *string);
+		}
+	}
+}

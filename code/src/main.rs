@@ -30,7 +30,6 @@ fn main() {
 		.add_state(GameState::Credits)	//start the game in the credits state
 		.add_plugins(DefaultPlugins)
 		.add_startup_system(setup)
-		.add_system(text_input)
 		.add_system_set(
 			SystemSet::on_update(GameState::Credits)
 				.label("credits")
@@ -52,6 +51,11 @@ fn main() {
 		.add_system_set(
 			SystemSet::on_exit(GameState::Conversation)
 				.with_system(conversation::clear_conversation)	// remove the popups on screen when exiting the credit state
+		)
+		.add_system_set(
+			SystemSet::on_update(GameState::Conversation)
+				.label("conversation")
+				.with_system(conversation::text_input)
 		)
 		.add_system(change_gamestate)
 		//.add_system(show_popup)
@@ -184,27 +188,6 @@ fn clear_credits(
 ) {
 	for mut vis_map in popup.iter_mut() {
 		vis_map.is_visible = false;
-	}
-}
-
-/// prints every char coming in; press enter to echo the full string
-fn text_input(
-    mut char_evr: EventReader<ReceivedCharacter>,
-    keys: Res<Input<KeyCode>>,
-    mut string: Local<String>,
-) {
-	for ev in char_evr.iter() {
-		if keys.just_pressed(KeyCode::Return) {
-			println!("Text input: {}", *string);
-			string.clear();	
-		} else
-		if keys.just_pressed(KeyCode::Back) {
-			string.pop();
-			println!("Text input: {}", *string);
-		} else {
-			string.push(ev.char); 
-			println!("Text input: '{}'", *string);
-		}
 	}
 }
 
