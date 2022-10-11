@@ -3,6 +3,11 @@ use bevy::{
 	window::PresentMode,
 };
 
+mod fight;
+
+const WIN_W: f32 = 1280.;
+const WIN_H: f32 = 720.;
+
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
 enum GameState {
     Credits,
@@ -20,12 +25,12 @@ fn main() {
 	App::new()
 		.insert_resource(WindowDescriptor {
 			title: String::from("Suburban Rumble"),
-			width: 1280.,
-			height: 720.,
+			width: WIN_W,
+			height: WIN_H,
 			present_mode: PresentMode::Fifo,
 			..default()
 		})
-		.insert_resource(ClearColor(Color::rgb(0.0, 0.0, 0.0)))
+		.insert_resource(ClearColor(Color::BLACK))
 		.add_state(GameState::Credits)	//start the game in the credits state
 		.add_plugins(DefaultPlugins)
 		.add_startup_system(setup)
@@ -44,39 +49,33 @@ fn main() {
 			SystemSet::on_exit(GameState::Credits)
 				.with_system(clear_credits)	// remove the popups on screen when exiting the credit state
 		)
+		.add_system_set(
+			SystemSet::on_update(GameState::Fight)
+				.label("fight")
+				.with_system(fight::move_player)
+		)
+		.add_system_set(
+			SystemSet::on_enter(GameState::Fight)
+				.with_system(fight::setup_fight)
+		)
+		.add_system_set(
+			SystemSet::on_exit(GameState::Fight)
+				.with_system(fight::clear_fight)
+		)
 		.add_system(change_gamestate)
 		.run();
 }
 
-fn setup(mut commands: Commands) {
+fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
 	commands.spawn_bundle(Camera2dBundle::default());
-  // This is the text that the user inputs
-		commands.spawn_bundle(TextBundle {
-            text: Text {
-                sections: vec![
-                    TextSection {
-                        value: "".to_string(),
-                        style: TextStyle {
-                            font: asset_server.load("Fonts/FiraSans-Bold.ttf"),
-                            font_size: 40.0,
-                            color: Color::rgb(1.0, 0.5, 0.5),
-                        },
-                    },
-                ],
-                ..Default::default()
-            },
-            style: Style {
-                position_type: PositionType::Absolute,
-				position: UiRect {
-                    top: Val::Px(500.0),
-                    left: Val::Px(5.0),
-                    ..Default::default()
-                },
-                ..Default::default()
-            },
-			transform: Transform::from_xyz(50., 20., 3.),
-            ..Default::default()
-        });
+	commands.spawn_bundle(TextBundle::from_section(
+		"Press 1 for Conversation, 2 for Fight, 3 for Credits",
+		TextStyle {
+			font: asset_server.load("fonts/SourceSansPro-Regular.ttf"),
+			font_size: 16.,
+			color: Color::WHITE,
+		}
+	));
 }
 
 fn setup_credits(mut commands: Commands, asset_server: Res<AssetServer>) {
@@ -188,7 +187,7 @@ fn remove_popup(
 }
 
 fn clear_credits(
-	mut popup: Query<&mut Visibility>
+	mut popup: Query<&mut Visibility, With<PopupTimer>>
 ) {
 	for mut vis_map in popup.iter_mut() {
 		vis_map.is_visible = false;
