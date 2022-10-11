@@ -16,6 +16,7 @@ struct PopupTimer(Timer);
 #[derive(Component, Deref, DerefMut)]
 struct DespawnTimer(Timer);
 
+mod conversation;
 fn main() {
 	App::new()
 		.insert_resource(WindowDescriptor {
@@ -43,6 +44,14 @@ fn main() {
 		.add_system_set(
 			SystemSet::on_exit(GameState::Credits)
 				.with_system(clear_credits)	// remove the popups on screen when exiting the credit state
+		)
+		.add_system_set(
+			SystemSet::on_enter(GameState::Conversation)
+				.with_system(conversation::setup_conversation)
+		)
+		.add_system_set(
+			SystemSet::on_exit(GameState::Conversation)
+				.with_system(conversation::clear_conversation)	// remove the popups on screen when exiting the credit state
 		)
 		.add_system(change_gamestate)
 		//.add_system(show_popup)
