@@ -24,31 +24,22 @@ fn main() {
 		.add_system(text_input)
 		.add_system(show_popup)
 		.add_system(remove_popup)
-		//.add_system(trans_sprite)
+				//.add_system(trans_sprite)
 		.run();
 }
 
 fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
 	commands.spawn_bundle(Camera2dBundle::default());
-	//commands
-	//	.spawn_bundle(SpriteBundle {
-	//		texture: asset_server.load("hello_world_win.png"),
-	//		..default()
-	//	});
+
 	commands
 		.spawn_bundle(SpriteBundle {
 			texture: asset_server.load("Makayla_Miles.png"),
 			transform: Transform::from_xyz(0., 0., -1.),
 			..default()
 		})
-		//.insert(PopupTimer(Timer::from_seconds(5.0, false)));
 		.insert(PopupTimer(Timer::from_seconds(0.,false)))
 		.insert(DespawnTimer(Timer::from_seconds(3.,false)));
-		//.insert(Timer::new(5., false));
-			
-		//commands.entity(texture).despawn();
-//fn setup2(mut commands: Commands, asset_server: Res<AssetServer>) {
-	//commands.spawn_bundle(Camera2dBundle::default()); 	
+	
 	commands
 		.spawn_bundle(SpriteBundle {
 			texture: asset_server.load("adamsheelar.png"),
@@ -113,11 +104,37 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
 		})
 		.insert(PopupTimer(Timer::from_seconds(21., false)))
 		.insert(DespawnTimer(Timer::from_seconds(24.,false)));
+
+		// This is the text that the user inputs
+		commands.spawn_bundle(TextBundle {
+            text: Text {
+                sections: vec![
+                    TextSection {
+                        value: "".to_string(),
+                        style: TextStyle {
+                            font: asset_server.load("Fonts/FiraSans-Bold.ttf"),
+                            font_size: 40.0,
+                            color: Color::rgb(1.0, 0.5, 0.5),
+                        },
+                    },
+                ],
+                ..Default::default()
+            },
+            style: Style {
+                position_type: PositionType::Absolute,
+				position: UiRect {
+                    top: Val::Px(500.0),
+                    left: Val::Px(5.0),
+                    ..Default::default()
+                },
+                ..Default::default()
+            },
+			transform: Transform::from_xyz(50., 20., 3.),
+            ..Default::default()
+        });
 		
 	info!("The End!");
 }
-
-
 
 fn show_popup(
 	time: Res<Time>,
@@ -143,24 +160,28 @@ fn remove_popup(
 	}
 }
 
-/// prints every char coming in; press enter to echo the full string
+/// prints every char coming in; press enter to reset the string
 fn text_input(
     mut char_evr: EventReader<ReceivedCharacter>,
     keys: Res<Input<KeyCode>>,
     mut string: Local<String>,
+	mut query: Query<&mut Text>,
 ) {
-	for ev in char_evr.iter() {
-		if keys.just_pressed(KeyCode::Return) {
-			println!("Text input: {}", *string);
-			string.clear();	
-		} else
-		if keys.just_pressed(KeyCode::Back) {
-			string.pop();
-			println!("Text input: {}", *string);
-		} else {
-			string.push(ev.char); 
-			println!("Text input: '{}'", *string);
+	for mut text in query.iter_mut() {
+		for ev in char_evr.iter() {
+			if keys.just_pressed(KeyCode::Return) {
+				text.sections[0].value = "".to_string();
+				string.clear();	
+			} else
+			if keys.just_pressed(KeyCode::Back) {
+				string.pop();
+				text.sections[0].value = string.to_string();
+			} else {
+				string.push(ev.char); 
+				text.sections[0].value = string.to_string();
+			}
 		}
 	}
+	
 }
 
