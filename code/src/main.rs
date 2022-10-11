@@ -48,7 +48,7 @@ fn main() {
 		.run();
 }
 
-fn setup(mut commands: Commands) {
+fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
 	commands.spawn_bundle(Camera2dBundle::default());
   // This is the text that the user inputs
 		commands.spawn_bundle(TextBundle {
