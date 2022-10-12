@@ -3,52 +3,114 @@ use bevy::{
 	window::PresentMode,
 };
 
+mod fight;
+
+const WIN_W: f32 = 1280.;
+const WIN_H: f32 = 720.;
+
+#[derive(Debug, Clone, Eq, PartialEq, Hash)]
+enum GameState {
+    Credits,
+    Conversation,
+    Fight,
+}
+
 #[derive(Component, Deref, DerefMut)]
 struct PopupTimer(Timer);
 
 #[derive(Component, Deref, DerefMut)]
 struct DespawnTimer(Timer);
 
+mod conversation;
 fn main() {
 	App::new()
 		.insert_resource(WindowDescriptor {
-			title: String::from("The End!"),
-			width: 1280.,
-			height: 720.,
+			title: String::from("Suburban Rumble"),
+			width: WIN_W,
+			height: WIN_H,
 			present_mode: PresentMode::Fifo,
 			..default()
 		})
-		.insert_resource(ClearColor(Color::rgb(0.0, 0.0, 0.0)))
+		.insert_resource(ClearColor(Color::BLACK))
+		.add_state(GameState::Fight)	//start the game in the credits state
 		.add_plugins(DefaultPlugins)
 		.add_startup_system(setup)
-		.add_system(text_input)
-		.add_system(show_popup)
-		.add_system(remove_popup)
-		//.add_system(trans_sprite)
+		.add_system_set(
+			SystemSet::on_update(GameState::Credits)
+				.label("credits")
+				.with_system(show_popup)
+				.with_system(remove_popup)
+		)
+		.add_system_set(
+			SystemSet::on_enter(GameState::Credits)
+				.with_system(setup_credits)
+		)
+		.add_system_set(
+			SystemSet::on_exit(GameState::Credits)
+				.with_system(clear_credits)	// remove the popups on screen when exiting the credit state
+		)
+		.add_system_set(
+			SystemSet::on_update(GameState::Fight)
+				.label("fight")
+				.with_system(fight::move_player)
+				.with_system(fight::attack)
+				.with_system(fight::remove_popup)
+				.with_system(fight::apply_gravity)
+		)
+		.add_system_set(
+			SystemSet::on_enter(GameState::Fight)
+				.with_system(fight::setup_fight)
+		)
+		.add_system_set(
+			SystemSet::on_exit(GameState::Fight)
+				.with_system(fight::clear_fight)
+		)
+		.add_system_set(
+			SystemSet::on_enter(GameState::Conversation)
+				.with_system(conversation::setup_conversation)
+		)
+		.add_system_set(
+			SystemSet::on_exit(GameState::Conversation)
+				.with_system(conversation::clear_conversation)	// remove the popups on screen when exiting the credit state
+		)
+		.add_system_set(
+			SystemSet::on_update(GameState::Conversation)
+				.label("conversation")
+				.with_system(conversation::text_input)
+		)
+		.add_system(change_gamestate)
 		.run();
 }
 
 fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
 	commands.spawn_bundle(Camera2dBundle::default());
+	commands.spawn_bundle(TextBundle::from_section(
+		"Press 1 for Conversation, 2 for Fight, 3 for Credits",
+		TextStyle {
+			font: asset_server.load("fonts/SourceSansPro-Regular.ttf"),
+			font_size: 16.,
+			color: Color::WHITE,
+		}
+	));
+}
+
+fn setup_credits(mut commands: Commands, asset_server: Res<AssetServer>) {
+	//commands.spawn_bundle(Camera2dBundle::default());
 	//commands
 	//	.spawn_bundle(SpriteBundle {
 	//		texture: asset_server.load("hello_world_win.png"),
 	//		..default()
 	//	});
+
 	commands
 		.spawn_bundle(SpriteBundle {
 			texture: asset_server.load("Makayla_Miles.png"),
 			transform: Transform::from_xyz(0., 0., -1.),
 			..default()
 		})
-		//.insert(PopupTimer(Timer::from_seconds(5.0, false)));
 		.insert(PopupTimer(Timer::from_seconds(0.,false)))
 		.insert(DespawnTimer(Timer::from_seconds(3.,false)));
-		//.insert(Timer::new(5., false));
-			
-		//commands.entity(texture).despawn();
-//fn setup2(mut commands: Commands, asset_server: Res<AssetServer>) {
-	//commands.spawn_bundle(Camera2dBundle::default()); 	
+	
 	commands
 		.spawn_bundle(SpriteBundle {
 			texture: asset_server.load("adamsheelar.png"),
@@ -87,7 +149,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
 		.insert(PopupTimer(Timer::from_seconds(12., false)))
 		.insert(DespawnTimer(Timer::from_seconds(15.,false)));
 
-		commands
+	commands
 		.spawn_bundle(SpriteBundle {
 			texture: asset_server.load("Birizibe Gnassingbe.png"),
 			transform: Transform::from_xyz(0., 0., -1.),
@@ -96,7 +158,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
 		.insert(PopupTimer(Timer::from_seconds(15., false)))
 		.insert(DespawnTimer(Timer::from_seconds(18.,false)));
 
-		commands
+	commands
 		.spawn_bundle(SpriteBundle {
 			texture: asset_server.load("emilykyle.png"),
 			transform: Transform::from_xyz(0., 0., -1.),
@@ -105,19 +167,16 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
 		.insert(PopupTimer(Timer::from_seconds(18., false)))
 		.insert(DespawnTimer(Timer::from_seconds(21.,false)));
 
-		commands
+	commands
 		.spawn_bundle(SpriteBundle {
 			texture: asset_server.load("VibhuCreditsF.png"),
 			transform: Transform::from_xyz(0., 0., -1.),
 			..default()
 		})
 		.insert(PopupTimer(Timer::from_seconds(21., false)))
-		.insert(DespawnTimer(Timer::from_seconds(24.,false)));
-		
-	info!("The End!");
+		.insert(DespawnTimer(Timer::from_seconds(24.,false)));		
+	info!("GameState: Credits");
 }
-
-
 
 fn show_popup(
 	time: Res<Time>,
@@ -143,24 +202,35 @@ fn remove_popup(
 	}
 }
 
-/// prints every char coming in; press enter to echo the full string
-fn text_input(
-    mut char_evr: EventReader<ReceivedCharacter>,
-    keys: Res<Input<KeyCode>>,
-    mut string: Local<String>,
+fn clear_credits(
+	mut popup: Query<&mut Visibility, With<PopupTimer>>
 ) {
-	for ev in char_evr.iter() {
-		if keys.just_pressed(KeyCode::Return) {
-			println!("Text input: {}", *string);
-			string.clear();	
-		} else
-		if keys.just_pressed(KeyCode::Back) {
-			string.pop();
-			println!("Text input: {}", *string);
-		} else {
-			string.push(ev.char); 
-			println!("Text input: '{}'", *string);
-		}
+	for mut vis_map in popup.iter_mut() {
+		vis_map.is_visible = false;
 	}
 }
 
+// changes the current gamestate on keypress
+fn change_gamestate(
+	keys: Res<Input<KeyCode>>,
+	mut game_state: ResMut<State<GameState>>
+) {
+	if keys.pressed(KeyCode::Key1) {	// change GameState to Conversation
+		match game_state.set(GameState::Conversation) {
+			Ok(_) => info!("GameState: Conversation"),
+			Err(_) => (),
+		}
+	}
+	else if keys.pressed(KeyCode::Key2) {
+		match game_state.set(GameState::Fight){
+			Ok(_) => info!("GameState: Fight"),
+			Err(_) => (),
+		}
+	}
+	else if keys.pressed(KeyCode::Key3) {
+		match game_state.set(GameState::Credits) {
+			Ok(_) => info!("GameState: Credits"),
+			Err(_) => (),
+		}
+	}
+}
