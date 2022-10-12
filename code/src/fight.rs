@@ -6,9 +6,13 @@ const PLAYER_W: f32 = 32.;
 const PLAYER_H: f32 = 64.;
 const PLAYER_SPEED: f32 = 500.; // play around with these values to make movement feel right for a fighting game
 const ACCEL_RATE: f32 = 4000.;  // I just copied them over from the examples
+const GRAVITY: f32 =5000.;
 
 #[derive(Component)]
 pub struct Player;
+
+#[derive(Component, Deref, DerefMut)]
+pub struct DespawnTimer(Timer);
 
 // use a velocity component to track the player's velocity
 #[derive(Component)]
@@ -121,3 +125,86 @@ pub fn move_player(
 		player_transform.translation = new_pos;
 	}
 }
+
+pub fn attack(input: Res<Input<KeyCode>>, mut player: Query<&Transform, With<Player>>,mut commands: Commands){
+    let player_transform = player.single_mut();
+    if input.just_released(KeyCode::P) {
+        commands
+		.spawn_bundle(SpriteBundle {
+			sprite: Sprite {
+				color: Color::GREEN,
+				custom_size: Some(Vec2::new(80.,15.)),
+				..default()
+			},
+            transform: Transform {
+            translation: Vec3::new(player_transform.translation.x+60., player_transform.translation.y+20., 0.1),
+            ..default()
+        },
+			..default()
+		})
+        .insert(DespawnTimer(Timer::from_seconds(0.1,false)));
+    }
+    if input.just_released(KeyCode::K){
+        commands
+		.spawn_bundle(SpriteBundle {
+			sprite: Sprite {
+				color: Color::GREEN,
+				custom_size: Some(Vec2::new(80.,15.)),
+				..default()
+			},
+            transform: Transform {
+            translation: Vec3::new(player_transform.translation.x+60., player_transform.translation.y-20., 0.1),
+            ..default()
+        },
+			..default()
+		})
+        .insert(DespawnTimer(Timer::from_seconds(0.1,false)));
+    }
+}
+pub fn remove_popup(
+	time: Res<Time>,
+	mut rmpopup: Query<(&mut DespawnTimer, &mut Visibility)>
+) {
+	for (mut timer, mut vis_map) in rmpopup.iter_mut() {
+		timer.tick(time.delta());
+		if timer.just_finished() {
+			vis_map.is_visible = false;
+		}
+	}
+}
+pub fn apply_gravity(
+    time: Res<Time>,
+    mut player: Query<(&mut Transform, &mut Velocity), With<Player>>
+){
+  
+    let (mut player_transform, mut player_velocity) = player.single_mut();
+
+	let mut deltav = Vec2::splat(0.);
+    deltav.y -= 1.;
+    let deltat = time.delta_seconds();
+	let acc = GRAVITY * deltat;
+
+	// calculate the velocity vector by multiplying it with the acceleration constant
+	player_velocity.velocity = if deltav.length() > 0. {
+		(player_velocity.velocity + (deltav.normalize_or_zero() * acc)).clamp_length_max(PLAYER_SPEED)
+	}
+	else if player_velocity.velocity.length() > acc {
+		player_velocity.velocity + (player_velocity.velocity.normalize_or_zero() * -acc)
+	}
+	else {
+		Vec2::splat(0.)
+	};
+	let change = player_velocity.velocity * deltat;
+
+    let new_pos = player_transform.translation + Vec3::new(
+		0.,
+		change.y,
+		0.,
+	);
+    
+    if new_pos.y >= -(crate::WIN_H/2.) + PLAYER_H/2. && new_pos.y <= crate::WIN_H/2. - PLAYER_H/2. {
+		player_transform.translation = new_pos;
+	}
+
+}
+

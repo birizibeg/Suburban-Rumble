@@ -32,7 +32,7 @@ fn main() {
 			..default()
 		})
 		.insert_resource(ClearColor(Color::BLACK))
-		.add_state(GameState::Credits)	//start the game in the credits state
+		.add_state(GameState::Fight)	//start the game in the credits state
 		.add_plugins(DefaultPlugins)
 		.add_startup_system(setup)
 		.add_system_set(
@@ -53,6 +53,9 @@ fn main() {
 			SystemSet::on_update(GameState::Fight)
 				.label("fight")
 				.with_system(fight::move_player)
+				.with_system(fight::attack)
+				.with_system(fight::remove_popup)
+				.with_system(fight::apply_gravity)
 		)
 		.add_system_set(
 			SystemSet::on_enter(GameState::Fight)
