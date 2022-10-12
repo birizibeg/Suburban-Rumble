@@ -21,6 +21,7 @@ struct PopupTimer(Timer);
 #[derive(Component, Deref, DerefMut)]
 struct DespawnTimer(Timer);
 
+mod conversation;
 fn main() {
 	App::new()
 		.insert_resource(WindowDescriptor {
@@ -34,7 +35,6 @@ fn main() {
 		.add_state(GameState::Credits)	//start the game in the credits state
 		.add_plugins(DefaultPlugins)
 		.add_startup_system(setup)
-		.add_system(text_input)
 		.add_system_set(
 			SystemSet::on_update(GameState::Credits)
 				.label("credits")
@@ -61,6 +61,19 @@ fn main() {
 		.add_system_set(
 			SystemSet::on_exit(GameState::Fight)
 				.with_system(fight::clear_fight)
+		)
+		.add_system_set(
+			SystemSet::on_enter(GameState::Conversation)
+				.with_system(conversation::setup_conversation)
+		)
+		.add_system_set(
+			SystemSet::on_exit(GameState::Conversation)
+				.with_system(conversation::clear_conversation)	// remove the popups on screen when exiting the credit state
+		)
+		.add_system_set(
+			SystemSet::on_update(GameState::Conversation)
+				.label("conversation")
+				.with_system(conversation::text_input)
 		)
 		.add_system(change_gamestate)
 		.run();
@@ -192,31 +205,6 @@ fn clear_credits(
 	for mut vis_map in popup.iter_mut() {
 		vis_map.is_visible = false;
 	}
-}
-
-/// prints every char coming in; press enter to reset the string
-fn text_input(
-    mut char_evr: EventReader<ReceivedCharacter>,
-    keys: Res<Input<KeyCode>>,
-    mut string: Local<String>,
-	mut query: Query<&mut Text>,
-) {
-	for mut text in query.iter_mut() {
-		for ev in char_evr.iter() {
-			if keys.just_pressed(KeyCode::Return) {
-				text.sections[0].value = "".to_string();
-				string.clear();	
-			} else
-			if keys.just_pressed(KeyCode::Back) {
-				string.pop();
-				text.sections[0].value = string.to_string();
-			} else {
-				string.push(ev.char); 
-				text.sections[0].value = string.to_string();
-			}
-		}
-	}
-	
 }
 
 // changes the current gamestate on keypress
