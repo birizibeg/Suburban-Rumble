@@ -52,15 +52,17 @@ pub fn setup_conversation(
 	}).insert(Enemy);
 	let box_size = Vec2::new(300.0, 200.0);
     let box_position = Vec2::new(0.0, -250.0);
-    // commands.spawn_bundle(SpriteBundle {
-    //     sprite: Sprite {
-    //         color: Color::DARK_GRAY,
-    //         custom_size: Some(Vec2::new(box_size.x, box_size.y)),
-    //         ..default()
-    //     },
-    //     transform: Transform::from_translation(box_position.extend(0.0)),
-    //     ..default()
-    // });
+
+    commands.spawn_bundle(SpriteBundle {
+        sprite: Sprite {
+            color: Color::DARK_GRAY,
+            custom_size: Some(Vec2::new(box_size.x, box_size.y)),
+            ..default()
+        },
+        transform: Transform::from_translation(box_position.extend(0.0)),
+        ..default()
+    });
+    
     commands.spawn_bundle(Text2dBundle {
         text: Text::from_section("Press enter to display input", text_style),
         text_2d_bounds: Text2dBounds {
@@ -102,23 +104,22 @@ pub fn text_input(
     mut char_evr: EventReader<ReceivedCharacter>,
     keys: Res<Input<KeyCode>>,
     mut string: Local<String>,
-	mut dialogue: Query<(&mut Text), With<DialogueBox>>
+	mut dialogue: Query<&mut Text, With<DialogueBox>>
 ) {
 	let mut dialogue_text = dialogue.single_mut();
 
 	for ev in char_evr.iter() {
 
 		if keys.just_pressed(KeyCode::Return) {
-			println!("Text input: {}", *string);
-			dialogue_text.sections[0].value = string.to_string();
 			string.clear();	
+            dialogue_text.sections[0].value = "".to_string();
 		} else
 		if keys.just_pressed(KeyCode::Back) {
 			string.pop();
-			println!("Text input: {}", *string);
+			dialogue_text.sections[0].value = string.to_string();
 		} else {
 			string.push(ev.char); 
-			println!("Text input: '{}'", *string);
+			dialogue_text.sections[0].value = string.to_string();
 		}
 	}
 }
