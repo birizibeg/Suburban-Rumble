@@ -2,12 +2,14 @@ use bevy::{
     prelude::*
 };
 
-const PLAYER_W: f32 = 32.;
-const PLAYER_H: f32 = 64.;
+const PLAYER_W: f32 = 64.;
+const PLAYER_H: f32 = 128.;
 const FLOOR_HEIGHT: f32 = -crate::WIN_H/4.;
 const PLAYER_SPEED: f32 = 500.; // play around with these values to make movement feel right for a fighting game
 const ACCEL_RATE: f32 = 5000.;  
 const GRAVITY: f32 = 2000.;
+const HEALTHBAR_X: f32 = 5.*100.;
+const HEALTHBAR_Y: f32 = 32.;
 
 #[derive(Component)]
 pub struct Player;
@@ -17,6 +19,12 @@ pub struct Enemy;
 
 #[derive(Component, Deref, DerefMut)]
 pub struct DespawnTimer(Timer);
+
+#[derive(Component)]
+pub struct PlayerName(String);
+
+#[derive(Component)]
+pub struct EnemyName(String);
 
 // use a velocity component to track the player and enemy velocity
 #[derive(Component)]
@@ -39,6 +47,11 @@ impl Stats {
 		Self { health: 100. }	// start every entity at 100 health
 	}
 }
+
+#[derive(Component)]
+pub struct HealthBarTop;
+#[derive(Component)]
+pub struct HealthBarBottom;
 
 pub fn setup_fight(mut commands: Commands, mut clear_color: ResMut<ClearColor>) {
     clear_color.0 = Color::DARK_GRAY;	// subject to change
@@ -76,6 +89,66 @@ pub fn setup_fight(mut commands: Commands, mut clear_color: ResMut<ClearColor>) 
 	.insert(Velocity::new())
 	.insert(Stats::new())
 	.insert(Enemy);
+
+	// spawn player health bar
+	commands.spawn_bundle(SpriteBundle {
+		sprite: Sprite {
+			color: Color::LIME_GREEN,
+			custom_size: Some(Vec2::new(HEALTHBAR_X, HEALTHBAR_Y)),
+			..default()
+		},
+		transform: Transform {
+			translation: Vec3::new( (-crate::WIN_W/2. + HEALTHBAR_X/2.)+16., (crate::WIN_H/2. - HEALTHBAR_Y/2.)-16., 1.),
+			..default()
+		},
+		..default()
+	})
+	.insert(HealthBarTop)
+	.insert(PlayerName(String::from("Player")));
+	commands.spawn_bundle(SpriteBundle {
+		sprite: Sprite {
+			color: Color::RED,
+			custom_size: Some(Vec2::new(HEALTHBAR_X, HEALTHBAR_Y)),
+			..default()
+		},
+		transform: Transform {
+			translation: Vec3::new( (-crate::WIN_W/2. + HEALTHBAR_X/2.)+16., (crate::WIN_H/2. - HEALTHBAR_Y/2.)-16., 0.),
+			..default()
+		},
+		..default()
+	})
+	.insert(HealthBarBottom)
+	.insert(PlayerName(String::from("Player")));
+
+	// spawn enemy health bar
+	commands.spawn_bundle(SpriteBundle {
+		sprite: Sprite {
+			color: Color::LIME_GREEN,
+			custom_size: Some(Vec2::new(HEALTHBAR_X, HEALTHBAR_Y)),
+			..default()
+		},
+		transform: Transform {
+			translation: Vec3::new( (crate::WIN_W/2. - HEALTHBAR_X/2.)-16., (crate::WIN_H/2. - HEALTHBAR_Y/2.)-16., 1.),
+			..default()
+		},
+		..default()
+	})
+	.insert(HealthBarTop)
+	.insert(EnemyName(String::from("dummy")));
+	commands.spawn_bundle(SpriteBundle {
+		sprite: Sprite {
+			color: Color::RED,
+			custom_size: Some(Vec2::new(HEALTHBAR_X, HEALTHBAR_Y)),
+			..default()
+		},
+		transform: Transform {
+			translation: Vec3::new( (crate::WIN_W/2. - HEALTHBAR_X/2.)-16., (crate::WIN_H/2. - HEALTHBAR_Y/2.)-16., 0.),
+			..default()
+		},
+		..default()
+	})
+	.insert(HealthBarBottom)
+	.insert(EnemyName(String::from("dummy")));
 }
 
 //changes the clear color back to black and despawns the character entities,
@@ -253,11 +326,11 @@ pub fn attack(input: Res<Input<KeyCode>>, mut player: Query<&Transform, With<Pla
 		.spawn_bundle(SpriteBundle {
 			sprite: Sprite {
 				color: Color::GREEN,
-				custom_size: Some(Vec2::new(80.,15.)),
+				custom_size: Some(Vec2::new(80.,32.)),
 				..default()
 			},
             transform: Transform {
-            translation: Vec3::new(player_transform.translation.x+60., player_transform.translation.y+20., 0.1),
+            translation: Vec3::new(player_transform.translation.x+60., player_transform.translation.y+32., 0.1),
             ..default()
         },
 			..default()
@@ -269,11 +342,11 @@ pub fn attack(input: Res<Input<KeyCode>>, mut player: Query<&Transform, With<Pla
 		.spawn_bundle(SpriteBundle {
 			sprite: Sprite {
 				color: Color::GREEN,
-				custom_size: Some(Vec2::new(80.,15.)),
+				custom_size: Some(Vec2::new(80.,32.)),
 				..default()
 			},
             transform: Transform {
-            translation: Vec3::new(player_transform.translation.x+60., player_transform.translation.y-20., 0.1),
+            translation: Vec3::new(player_transform.translation.x+60., player_transform.translation.y-32., 0.1),
             ..default()
         },
 			..default()
