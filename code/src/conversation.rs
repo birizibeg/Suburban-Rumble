@@ -9,6 +9,8 @@ pub struct Hero;
 pub struct Enemy;
 #[derive(Component)]
 pub struct DialogueBox;
+#[derive(Component)]
+pub struct UserInput;
 
 enum ConversationState {
     Introduction,
@@ -69,7 +71,7 @@ pub fn setup_conversation(
         },
         transform: Transform::from_translation(box_position.extend(0.0)),
         ..default()
-    });
+    }).insert(DialogueBox);
 
     commands.spawn_bundle(SpriteBundle {
         sprite: Sprite {
@@ -79,13 +81,12 @@ pub fn setup_conversation(
         },
         transform: Transform::from_translation(box_position_two.extend(0.0)),
         ..default()
-    });
+    }).insert(DialogueBox);
 
     commands.spawn_bundle(Text2dBundle {
         text: Text::from_section("Excuse me neighbor, can I borrow some sugar?", enemy_text_style),
         text_2d_bounds: Text2dBounds {
             size: box_size,
-
         },
         transform: Transform::from_xyz(
             box_position_two.x - box_size.x / 2.0,
@@ -93,13 +94,12 @@ pub fn setup_conversation(
             1.0,
         ),
         ..default()
-    });
+    }).insert(DialogueBox);
     
     commands.spawn_bundle(Text2dBundle {
         text: Text::from_section("Press enter to display input", user_text_style),
         text_2d_bounds: Text2dBounds {
             size: box_size,
-
         },
         transform: Transform::from_xyz(
             box_position.x - box_size.x / 2.0,
@@ -107,8 +107,9 @@ pub fn setup_conversation(
             1.0,
         ),
         ..default()
-    }).insert(DialogueBox);
-	info!("Setting Up: GameState: Conversation");
+    }).insert(DialogueBox)
+      .insert(UserInput);
+	//info!("Setting Up: GameState: Conversation");
 }
 
 pub fn clear_conversation(
@@ -116,24 +117,24 @@ pub fn clear_conversation(
     mut clear_color: ResMut<ClearColor>,
     mut hero: Query<Entity, With<Hero>>,
 	mut enemy: Query<Entity, With<Enemy>>,
-    mut dialogue:Query<Entity,With<DialogueBox>>,
+    dialogue: Query<Entity, With<DialogueBox>>,
 
 ) {
     clear_color.0 = Color::BLACK;
-
+    for entity in dialogue.iter() {
+        commands.entity(entity).despawn();
+    }
     let hero_eid = hero.single_mut();
 	let enemy_eid = enemy.single_mut();
-    let dialogue_eid:Entity = dialogue.single_mut();
     commands.entity(hero_eid).despawn();
 	commands.entity(enemy_eid).despawn();
-    commands.entity(dialogue_eid).despawn();
 }
 
 pub fn text_input(
     mut char_evr: EventReader<ReceivedCharacter>,
     keys: Res<Input<KeyCode>>,
     mut string: Local<String>,
-	mut dialogue: Query<&mut Text, With<DialogueBox>>
+	mut dialogue: Query<&mut Text, With<UserInput>>
 ) {
 	let mut dialogue_text = dialogue.single_mut();
 
