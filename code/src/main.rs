@@ -55,7 +55,8 @@ fn main() {
 				.with_system(fight::move_player)
 				.with_system(fight::attack)
 				.with_system(fight::remove_popup)
-				.with_system(fight::apply_gravity)
+				.with_system(fight::move_enemy)
+				//.with_system(fight::apply_gravity)
 		)
 		.add_system_set(
 			SystemSet::on_enter(GameState::Fight)
