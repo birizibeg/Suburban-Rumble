@@ -32,7 +32,7 @@ fn main() {
 			..default()
 		})
 		.insert_resource(ClearColor(Color::BLACK))
-		.add_state(GameState::Fight)	//start the game in the credits state
+		.add_state(GameState::Fight)	//start the game in the fight state
 		.add_plugins(DefaultPlugins)
 		.add_startup_system(setup)
 		.add_system_set(
