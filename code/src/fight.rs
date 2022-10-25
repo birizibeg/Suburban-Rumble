@@ -241,8 +241,13 @@ pub fn move_player(
 	}
 
 	let new_pos = player_transform.translation + Vec3::new(
+		//changes the new position to FLOOR_HEIGHT + PLAYER_H/2 if it becomes less than that
 		0.,
-		change.y,
+		if change.y + player_transform.translation.y < FLOOR_HEIGHT + PLAYER_H/2.{
+			 -1.*player_transform.translation.y + FLOOR_HEIGHT + PLAYER_H/2.
+		}else{
+			change.y
+		},
 		0.,
 	);
 	// check for player staying within the window and above the floor with new y position
@@ -310,7 +315,11 @@ pub fn move_enemy(
 
 	let new_pos = enemy_transform.translation + Vec3::new(
 		0.,
-		change.y,
+		if change.y + enemy_transform.translation.y < FLOOR_HEIGHT + PLAYER_H/2.{
+			-1.*enemy_transform.translation.y + FLOOR_HEIGHT + PLAYER_H/2.
+	   }else{
+		   change.y
+	   },
 		0.,
 	);
 	// check for enemy staying within the window and above the floor with new y position
@@ -321,7 +330,9 @@ pub fn move_enemy(
 
 pub fn attack(input: Res<Input<KeyCode>>, mut player: Query<&Transform, With<Player>>,mut commands: Commands){
     let player_transform = player.single_mut();
-    if input.just_pressed(KeyCode::P) {
+    if input.just_released(KeyCode::P) 
+		&& !input.pressed(KeyCode::D)
+		&& !input.pressed(KeyCode::A){
         commands
 		.spawn_bundle(SpriteBundle {
 			sprite: Sprite {
@@ -337,7 +348,9 @@ pub fn attack(input: Res<Input<KeyCode>>, mut player: Query<&Transform, With<Pla
 		})
         .insert(DespawnTimer(Timer::from_seconds(0.1,false)));
     }
-    if input.just_pressed(KeyCode::K){
+    if input.just_released(KeyCode::K)
+		&& !input.pressed(KeyCode::D)
+		&& !input.pressed(KeyCode::A){
         commands
 		.spawn_bundle(SpriteBundle {
 			sprite: Sprite {
