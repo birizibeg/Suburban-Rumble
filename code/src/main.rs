@@ -4,7 +4,7 @@ use bevy::{
 };
 
 mod fight;
-
+mod conversation;
 const WIN_W: f32 = 1280.;
 const WIN_H: f32 = 720.;
 
@@ -14,14 +14,15 @@ enum GameState {
     Conversation,
     Fight,
 }
-
 #[derive(Component, Deref, DerefMut)]
 struct PopupTimer(Timer);
-
 #[derive(Component, Deref, DerefMut)]
 struct DespawnTimer(Timer);
+pub struct ConvInputEvent(String);
+pub struct ConvLossEvent();
+pub struct ConvWinEvent();
 
-mod conversation;
+
 fn main() {
 	App::new()
 		.insert_resource(WindowDescriptor {
@@ -32,7 +33,10 @@ fn main() {
 			..default()
 		})
 		.insert_resource(ClearColor(Color::BLACK))
-		.add_state(GameState::Conversation)	//start the game in the conversation state
+		.add_state(GameState::Conversation)	//start the game in the fight state
+		.add_event::<ConvInputEvent>()
+		.add_event::<ConvLossEvent>()
+		.add_event::<ConvWinEvent>()
 		.add_plugins(DefaultPlugins)
 		.add_startup_system(setup)
 		.add_system_set(
@@ -78,8 +82,10 @@ fn main() {
 			SystemSet::on_update(GameState::Conversation)
 				.label("conversation")
 				.with_system(conversation::text_input)
+				.with_system(conversation::process_input)
 		)
 		.add_system(change_gamestate)
+		.add_system(conv_over)
 		.run();
 }
 
@@ -208,6 +214,26 @@ fn clear_credits(
 ) {
 	for mut vis_map in popup.iter_mut() {
 		vis_map.is_visible = false;
+	}
+}
+
+// Has an event listener for a conversation 'loss' that sends the player to the fight state
+fn conv_over(
+	mut game_state: ResMut<State<GameState>>,
+	mut loss_reader: EventReader<ConvLossEvent>,
+	mut win_reader: EventReader<ConvWinEvent>
+) {
+	for _ev in loss_reader.iter() {
+		match game_state.set(GameState::Fight){
+			Ok(_) => info!("GameState: Fight"),
+			Err(_) => (),
+		}
+	}
+	for _ev in win_reader.iter() {
+		match game_state.set(GameState::Credits){
+			Ok(_) => info!("GameState: Credits"),
+			Err(_) => (),
+		}
 	}
 }
 
