@@ -83,16 +83,16 @@ fn main() {
 		.run();
 }
 
-fn setup(mut commands: Commands, ){//asset_server: Res<AssetServer>) {
+fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
 	commands.spawn_bundle(Camera2dBundle::default());
-	/*commands.spawn_bundle(TextBundle::from_section(
-		"Press 1 for Conversation, 2 for Fight, 3 for Credits",
+	commands.spawn_bundle(TextBundle::from_section(
+		"Press \"V\" at any time to start over.",
 		TextStyle {
 			font: asset_server.load("fonts/SourceSansPro-Regular.ttf"),
-			font_size: 20.0,
+			font_size: 25.0,
 			color: Color::WHITE,
 		}
-	));*/
+	));
 }
 
 fn setup_credits(mut commands: Commands, asset_server: Res<AssetServer>) {
@@ -241,10 +241,20 @@ fn change_gamestate(
 			}
         }
 		GameState::Fight => {
-
+			if keys.pressed(KeyCode::V) {
+				match game_state.set(GameState::Fight){
+					Ok(_) => info!("GameState: Conversation"),
+					Err(_) => (),
+				}
+			}
         }
 		GameState::Credits => {
-
+			if keys.pressed(KeyCode::V) {
+				match game_state.set(GameState::Conversation){
+					Ok(_) => info!("GameState: Conversation"),
+					Err(_) => (),
+				}
+			}
 		} 
 	}
 }
