@@ -394,6 +394,7 @@ pub fn attack(
 	if input.just_released(KeyCode::P)
 	&& !input.pressed(KeyCode::D)
 	&& !input.pressed(KeyCode::A){
+
         commands
 		.spawn_bundle(SpriteBundle {
 			sprite: Sprite {
@@ -428,6 +429,7 @@ pub fn attack(
 	if input.just_released(KeyCode::K)
 	&& !input.pressed(KeyCode::D)
 	&& !input.pressed(KeyCode::A){
+
         commands
 		.spawn_bundle(SpriteBundle {
 			sprite: Sprite {
