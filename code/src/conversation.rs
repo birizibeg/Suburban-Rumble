@@ -5,18 +5,12 @@ use bevy::{
 
 #[derive(Component)]
 pub struct Hero;
-
 #[derive(Component)]
 pub struct Enemy;
-
 #[derive(Component)]
 pub struct DialogueBox;
-
 #[derive(Component)]
 pub struct UserInput;
-
-#[derive(Component)]
-pub struct Button;
 
 enum ConversationState {
     Introduction,
@@ -24,6 +18,7 @@ enum ConversationState {
     GoodEnding,
 	BadEnding
 }
+
 
 pub fn setup_conversation(
 	mut commands: Commands,
@@ -33,7 +28,7 @@ pub fn setup_conversation(
     clear_color.0 = Color::DARK_GREEN;
     let user_text_style = TextStyle {
 		font: asset_server.load("Fonts/SourceSansPro-Regular.ttf"),
-        font_size: 40.0,
+        font_size: 60.0,
         color: Color::WHITE
     };
     let enemy_text_style = TextStyle {
@@ -70,17 +65,17 @@ pub fn setup_conversation(
 
     commands.spawn_bundle(SpriteBundle {
         sprite: Sprite {
-            color: Color::Rgba{red: 0.0, green: 0.0, blue: 0.0, alpha: 0.5},
+            color: Color::DARK_GRAY,
             custom_size: Some(Vec2::new(box_size.x, box_size.y)),
             ..default()
         },
-        transform: Transform::from_translation(box_position.extend(0.5)),
+        transform: Transform::from_translation(box_position.extend(0.0)),
         ..default()
     }).insert(DialogueBox);
 
     commands.spawn_bundle(SpriteBundle {
         sprite: Sprite {
-            color: Color::Rgba{red: 255.0, green: 255.0, blue: 255.0, alpha: 0.5},
+            color: Color::WHITE,
             custom_size: Some(Vec2::new(box_size.x, box_size.y)),
             ..default()
         },
@@ -102,7 +97,7 @@ pub fn setup_conversation(
     }).insert(DialogueBox);
     
     commands.spawn_bundle(Text2dBundle {
-        text: Text::from_section("Press \'n\' to say: \"Sure!\" (this option makes your neighbor happy)\nPress \'m\' to say: \"No! You stink!\" (be careful: this option makes your neighbor mad!", user_text_style),
+        text: Text::from_section("Press enter to display input", user_text_style),
         text_2d_bounds: Text2dBounds {
             size: box_size,
         },
@@ -113,7 +108,7 @@ pub fn setup_conversation(
         ),
         ..default()
     }).insert(DialogueBox)
-    .insert(UserInput);
+      .insert(UserInput);
 	//info!("Setting Up: GameState: Conversation");
 }
 
@@ -139,8 +134,7 @@ pub fn text_input(
     mut char_evr: EventReader<ReceivedCharacter>,
     keys: Res<Input<KeyCode>>,
     mut string: Local<String>,
-	mut dialogue: Query<&mut Text, With<UserInput>>,
-   // mut game_state: ResMut<State<GameState>>,
+	mut dialogue: Query<&mut Text, With<UserInput>>
 ) {
 	let mut dialogue_text = dialogue.single_mut();
 
@@ -153,12 +147,7 @@ pub fn text_input(
 		if keys.just_pressed(KeyCode::Back) {
 			string.pop();
 			dialogue_text.sections[0].value = string.to_string();
-		}
-        if keys.just_pressed(KeyCode::N) {
-			string.pop();
-			dialogue_text.sections[0].value = string.to_string();
-		}
-        else {
+		} else {
 			string.push(ev.char); 
 			dialogue_text.sections[0].value = string.to_string();
 		}

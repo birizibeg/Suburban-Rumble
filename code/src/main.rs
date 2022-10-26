@@ -32,7 +32,7 @@ fn main() {
 			..default()
 		})
 		.insert_resource(ClearColor(Color::BLACK))
-		.add_state(GameState::Conversation)	//start the game in the conversation state
+		.add_state(GameState::Fight)	//start the game in the fight state
 		.add_plugins(DefaultPlugins)
 		.add_startup_system(setup)
 		.add_system_set(
@@ -86,10 +86,10 @@ fn main() {
 fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
 	commands.spawn_bundle(Camera2dBundle::default());
 	commands.spawn_bundle(TextBundle::from_section(
-		"Press \"V\" at any time to start over.",
+		"Press 1 for Conversation, 2 for Fight, 3 for Credits",
 		TextStyle {
 			font: asset_server.load("fonts/SourceSansPro-Regular.ttf"),
-			font_size: 25.0,
+			font_size: 16.,
 			color: Color::WHITE,
 		}
 	));
@@ -214,47 +214,24 @@ fn clear_credits(
 // changes the current gamestate on keypress
 fn change_gamestate(
 	keys: Res<Input<KeyCode>>,
-	mut game_state: ResMut<State<GameState>>,
-
+	mut game_state: ResMut<State<GameState>>
 ) {
-	/*if keys.pressed(KeyCode::Key1) {	// change GameState to Conversation
+	if keys.pressed(KeyCode::Key1) {	// change GameState to Conversation
 		match game_state.set(GameState::Conversation) {
 			Ok(_) => info!("GameState: Conversation"),
 			Err(_) => (),
 		}
-		keys.reset(KeyCode::Escape);
 	}
-	else*/
-	match game_state.current() {
-		GameState::Conversation => {
-            if keys.pressed(KeyCode::M) {
-				match game_state.set(GameState::Fight){
-					Ok(_) => info!("GameState: Fight"),
-					Err(_) => (),
-				}
-			}
-			else if keys.pressed(KeyCode::N) {
-				match game_state.set(GameState::Credits) {
-					Ok(_) => info!("GameState: Credits"),
-					Err(_) => (),
-				}
-			}
-        }
-		GameState::Fight => {
-			if keys.pressed(KeyCode::V) {
-				match game_state.set(GameState::Conversation){
-					Ok(_) => info!("GameState: Conversation"),
-					Err(_) => (),
-				}
-			}
-        }
-		GameState::Credits => {
-			if keys.pressed(KeyCode::V) {
-				match game_state.set(GameState::Conversation){
-					Ok(_) => info!("GameState: Conversation"),
-					Err(_) => (),
-				}
-			}
-		} 
+	else if keys.pressed(KeyCode::Key2) {
+		match game_state.set(GameState::Fight){
+			Ok(_) => info!("GameState: Fight"),
+			Err(_) => (),
+		}
+	}
+	else if keys.pressed(KeyCode::Key3) {
+		match game_state.set(GameState::Credits) {
+			Ok(_) => info!("GameState: Credits"),
+			Err(_) => (),
+		}
 	}
 }
