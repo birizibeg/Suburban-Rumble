@@ -162,12 +162,7 @@ pub fn text_input(
 		if keys.just_pressed(KeyCode::Back) {
 			string.pop();
 			dialogue_text.sections[0].value = string.to_string();
-		}
-        if keys.just_pressed(KeyCode::N) {
-			string.pop();
-			dialogue_text.sections[0].value = string.to_string();
-		}
-        else {
+		} else {
 			string.push(ev.char); 
 			dialogue_text.sections[0].value = string.to_string();
 		}

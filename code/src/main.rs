@@ -243,44 +243,44 @@ fn change_gamestate(
 	mut game_state: ResMut<State<GameState>>,
 
 ) {
-	/*if keys.pressed(KeyCode::Key1) {	// change GameState to Conversation
+	if keys.pressed(KeyCode::Key1) {	// change GameState to Conversation
 		match game_state.set(GameState::Conversation) {
 			Ok(_) => info!("GameState: Conversation"),
 			Err(_) => (),
 		}
-		keys.reset(KeyCode::Escape);
 	}
-	else*/
-	match game_state.current() {
-		GameState::Conversation => {
-            if keys.pressed(KeyCode::M) {
-				match game_state.set(GameState::Fight){
-					Ok(_) => info!("GameState: Fight"),
-					Err(_) => (),
+	else {
+		match game_state.current() {
+			GameState::Conversation => {
+				/*if keys.pressed(KeyCode::M) {
+					match game_state.set(GameState::Fight){
+						Ok(_) => info!("GameState: Fight"),
+						Err(_) => (),
+					}
+				}
+				else if keys.pressed(KeyCode::N) {
+					match game_state.set(GameState::Credits) {
+						Ok(_) => info!("GameState: Credits"),
+						Err(_) => (),
+					}
+				}*/
+			} 
+			GameState::Fight => {
+				if keys.pressed(KeyCode::V) {
+					match game_state.set(GameState::Conversation){
+						Ok(_) => info!("GameState: Conversation"),
+						Err(_) => (),
+					}
 				}
 			}
-			else if keys.pressed(KeyCode::N) {
-				match game_state.set(GameState::Credits) {
-					Ok(_) => info!("GameState: Credits"),
-					Err(_) => (),
+			GameState::Credits => {
+				if keys.pressed(KeyCode::V) {
+					match game_state.set(GameState::Conversation){
+						Ok(_) => info!("GameState: Conversation"),
+						Err(_) => (),
+					}
 				}
-			}
-        }
-		GameState::Fight => {
-			if keys.pressed(KeyCode::V) {
-				match game_state.set(GameState::Conversation){
-					Ok(_) => info!("GameState: Conversation"),
-					Err(_) => (),
-				}
-			}
-        }
-		GameState::Credits => {
-			if keys.pressed(KeyCode::V) {
-				match game_state.set(GameState::Conversation){
-					Ok(_) => info!("GameState: Conversation"),
-					Err(_) => (),
-				}
-			}
+			} 
 		} 
 	}
 }
