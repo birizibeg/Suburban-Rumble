@@ -1,6 +1,7 @@
 use bevy::{
     prelude::*
 };
+use bevy::sprite::collide_aabb::collide;
 
 const PLAYER_W: f32 = 64.;
 const PLAYER_H: f32 = 128.;
@@ -167,13 +168,32 @@ pub fn clear_fight(
 	let enemy_eid = enemy.single_mut();
 	commands.entity(enemy_eid).despawn();
 }
+fn check_collision(
+	apos: Vec3,
+	asize: Vec2,
+	bpos: Vec3, 
+	bsize: Vec2
+)->bool{
+	let collision = collide(
+		apos,
+		asize,
+		bpos,
+		bsize
+	);
+	if collision.is_some(){
+		return true;
+	}
+	return false;
+}
 
 pub fn move_player(
     time: Res<Time>,
     input: Res<Input<KeyCode>>,
-    mut player: Query<(&mut Transform, &mut Velocity), With<Player>>
+    mut player: Query<(&mut Transform, &mut Velocity), Without<Enemy>>,
+	mut enemy: Query<&Transform, With<Enemy>>
 ) {
     let (mut player_transform, mut player_velocity) = player.single_mut();
+	let enemy_transform= enemy.single_mut();;
 
 	let mut deltav = Vec2::splat(0.);
 
@@ -235,20 +255,57 @@ pub fn move_player(
 		0.,
 		0.,
 	);
-	// check for player staying within the window with new x position
-	if new_pos.x >= -(crate::WIN_W/2.) + PLAYER_W/2. && new_pos.x <= crate::WIN_W/2. - PLAYER_W/2. {
+
+	if !check_collision(
+		//apos
+		new_pos,
+		//asize
+		Vec2::new(PLAYER_H/2., PLAYER_W/2.),
+		//bpos
+		enemy_transform.translation,
+		//bsize
+		Vec2::new(PLAYER_H/2.,PLAYER_W/2.)
+	) && new_pos.x >= -(crate::WIN_W/2.) + PLAYER_W/2. 
+	  && new_pos.x <= crate::WIN_W/2. - PLAYER_W/2.
+	{
+		
 		player_transform.translation = new_pos;
 	}
+	// check for player staying within the window with new x position
+	//if new_pos.x >= -(crate::WIN_W/2.) + PLAYER_W/2. && new_pos.x <= crate::WIN_W/2. - PLAYER_W/2. {
+	//	player_transform.translation = new_pos;
+	//}
 
 	let new_pos = player_transform.translation + Vec3::new(
+		//changes the new position to FLOOR_HEIGHT + PLAYER_H/2 if it becomes less than that
 		0.,
-		change.y,
+		if change.y + player_transform.translation.y < FLOOR_HEIGHT + PLAYER_H/2.{
+			 -1.*player_transform.translation.y + FLOOR_HEIGHT + PLAYER_H/2.
+		}else{
+			change.y
+		},
 		0.,
 	);
-	// check for player staying within the window and above the floor with new y position
-	if new_pos.y >= FLOOR_HEIGHT + PLAYER_H/2. && new_pos.y <= crate::WIN_H/2. - PLAYER_H/2. {
+	if !check_collision(
+		//apos
+		new_pos,
+		//asize
+		Vec2::new(PLAYER_H/2.,PLAYER_W/2.),
+		//bpos
+		enemy_transform.translation,
+		//bsize
+		Vec2::new(PLAYER_H/2.,PLAYER_W/2.)
+
+	)   && new_pos.y >= FLOOR_HEIGHT + PLAYER_H/2. 
+		&& new_pos.y <= crate::WIN_H/2. - PLAYER_H/2.
+		
+	{
 		player_transform.translation = new_pos;
 	}
+	// check for player staying within the window and above the floor with new y position
+	//if new_pos.y >= FLOOR_HEIGHT + PLAYER_H/2. && new_pos.y <= crate::WIN_H/2. - PLAYER_H/2. {
+	//	player_transform.translation = new_pos;
+	//}
 }
 
 //doesn't do anything right now other than apply gravity to the enemy
@@ -310,7 +367,11 @@ pub fn move_enemy(
 
 	let new_pos = enemy_transform.translation + Vec3::new(
 		0.,
-		change.y,
+		if change.y + enemy_transform.translation.y < FLOOR_HEIGHT + PLAYER_H/2.{
+			-1.*enemy_transform.translation.y + FLOOR_HEIGHT + PLAYER_H/2.
+	   }else{
+		   change.y
+	   },
 		0.,
 	);
 	// check for enemy staying within the window and above the floor with new y position
@@ -319,9 +380,20 @@ pub fn move_enemy(
 	}
 }
 
-pub fn attack(input: Res<Input<KeyCode>>, mut player: Query<&Transform, With<Player>>,mut commands: Commands){
-    let player_transform = player.single_mut();
-    if input.just_pressed(KeyCode::P) {
+pub fn attack(
+	input: Res<Input<KeyCode>>, 
+	mut player: Query<(&mut Transform, &mut Stats), Without<Enemy>>,
+	mut commands: Commands, 
+	mut enemy: Query<&Transform, With<Enemy>>,
+	
+
+	){
+    let ( player_transform, mut player_health) = player.single_mut();
+	let enemy_transform = enemy.single_mut();
+	
+	if input.just_released(KeyCode::P)
+	&& !input.pressed(KeyCode::D)
+	&& !input.pressed(KeyCode::A){
         commands
 		.spawn_bundle(SpriteBundle {
 			sprite: Sprite {
@@ -336,8 +408,26 @@ pub fn attack(input: Res<Input<KeyCode>>, mut player: Query<&Transform, With<Pla
 			..default()
 		})
         .insert(DespawnTimer(Timer::from_seconds(0.1,false)));
+		if !check_collision(
+			//apos
+			Vec3::new(player_transform.translation.x+60., player_transform.translation.y+32., 0.1),
+			//asize
+			Vec2::new(player_transform.translation.x+60., player_transform.translation.y+32.),
+			//bpos
+			Vec3::new(enemy_transform.translation.x, enemy_transform.translation.y, 0.1),
+			//bsize
+			Vec2::new(PLAYER_H/2., PLAYER_W/2.)
+		){
+			player_health.health -= 10.;
+			
+
+		}
+
+
     }
-    if input.just_pressed(KeyCode::K){
+	if input.just_released(KeyCode::K)
+	&& !input.pressed(KeyCode::D)
+	&& !input.pressed(KeyCode::A){
         commands
 		.spawn_bundle(SpriteBundle {
 			sprite: Sprite {
@@ -352,6 +442,19 @@ pub fn attack(input: Res<Input<KeyCode>>, mut player: Query<&Transform, With<Pla
 			..default()
 		})
         .insert(DespawnTimer(Timer::from_seconds(0.1,false)));
+		if !check_collision(
+			//apos
+			Vec3::new(player_transform.translation.x+60., player_transform.translation.y-32., 0.1),
+			//asize
+			///might need to be changed ().translation.x+60 )/2. just like with player...
+			Vec2::new(player_transform.translation.x+60., player_transform.translation.y-32.),
+			//bpos
+			enemy_transform.translation,
+			//bsize
+			Vec2::new(PLAYER_H/2., PLAYER_W/2.)
+		){
+			player_health.health -= 10.;
+		}
     }
 }
 pub fn remove_popup(
@@ -398,6 +501,7 @@ pub fn apply_gravity(
     if new_pos.y >= FLOOR_HEIGHT + PLAYER_H/2. {
 		player_transform.translation = new_pos;
 	}
+	
 
 }
 
