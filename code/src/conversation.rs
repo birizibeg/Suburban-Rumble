@@ -107,7 +107,7 @@ pub fn setup_conversation(
     }).insert(DialogueBox);
     
     commands.spawn_bundle(Text2dBundle {
-        text: Text::from_section("Press \'n\' to say: \"Sure!\" (this option makes your neighbor happy)\nPress \'m\' to say: \"No! You stink!\" (be careful: this option makes your neighbor mad!", user_text_style),
+        text: Text::from_section("Press enter to start", user_text_style),
         text_2d_bounds: Text2dBounds {
             size: box_size,
         },
