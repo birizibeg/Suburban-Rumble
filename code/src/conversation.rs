@@ -119,7 +119,6 @@ pub fn setup_conversation(
 
 pub fn clear_conversation(
     mut commands: Commands,
-    mut clear_color: ResMut<ClearColor>,
     mut hero: Query<Entity, With<Hero>>,
 	mut enemy: Query<Entity, With<Enemy>>,
     dialogue: Query<Entity, With<DialogueBox>>,

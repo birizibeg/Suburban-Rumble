@@ -157,7 +157,6 @@ pub fn setup_fight(mut commands: Commands, mut clear_color: ResMut<ClearColor>) 
 //doesn't have to rely on other states transitioning correctly
 pub fn clear_fight(
     mut commands: Commands,
-    mut clear_color: ResMut<ClearColor>,
     mut player: Query<Entity, With<Player>>,
 	mut enemy: Query<Entity, With<Enemy>>,
 	healthbar_tops: Query<Entity, With<HealthBarTop>>,
