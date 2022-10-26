@@ -2,6 +2,9 @@ use bevy::{
 	prelude::*,
 	text::Text2dBounds,
 };
+use super::ConvInputEvent;
+use super::ConvLossEvent;
+use super::ConvWinEvent;
 
 #[derive(Component)]
 pub struct Hero;
@@ -19,7 +22,7 @@ enum ConversationState {
 	BadEnding
 }
 
-
+// Spawn all entities to be used in the conversation part of the game
 pub fn setup_conversation(
 	mut commands: Commands,
 	mut clear_color: ResMut<ClearColor>, 
@@ -112,6 +115,7 @@ pub fn setup_conversation(
 	//info!("Setting Up: GameState: Conversation");
 }
 
+// Despawns every entity used in the conversation state that is not also in fight or credits
 pub fn clear_conversation(
     mut commands: Commands,
     mut clear_color: ResMut<ClearColor>,
@@ -130,17 +134,21 @@ pub fn clear_conversation(
 	commands.entity(enemy_eid).despawn();
 }
 
+// This takes the user's input and then prints every character onto the window using a text box
 pub fn text_input(
     mut char_evr: EventReader<ReceivedCharacter>,
     keys: Res<Input<KeyCode>>,
     mut string: Local<String>,
-	mut dialogue: Query<&mut Text, With<UserInput>>
+	mut dialogue: Query<&mut Text, With<UserInput>>,
+    mut ev_writer: EventWriter<ConvInputEvent>
 ) {
 	let mut dialogue_text = dialogue.single_mut();
 
 	for ev in char_evr.iter() {
 
 		if keys.just_pressed(KeyCode::Return) {
+            let entered_string = string.to_string();
+            ev_writer.send(ConvInputEvent(entered_string));
 			string.clear();	
             dialogue_text.sections[0].value = "".to_string();
 		} else
@@ -152,4 +160,24 @@ pub fn text_input(
 			dialogue_text.sections[0].value = string.to_string();
 		}
 	}
+}
+
+// Processes the input that the user gives
+// For now, just a few key phrases are checked to be contained in the user's response
+// This will be where the AI part is implemented
+pub fn process_input(
+    mut ev_reader: EventReader<ConvInputEvent>,
+    mut loss_writer: EventWriter<ConvLossEvent>,
+    mut win_writer: EventWriter<ConvWinEvent>
+) {
+    for input in ev_reader.iter() {
+        let mut string = input.0.to_string();
+        string.make_ascii_lowercase();
+        string = string.trim_end().to_string();
+        if string.contains("get lost") || string.contains("no") || string.contains("you're stinky") {
+            loss_writer.send(ConvLossEvent()); // Trigger loss
+        } else if string.contains("sure") || string.contains("absolutely") || string.contains("yes") {
+            win_writer.send(ConvWinEvent()); // Trigger win
+        }
+    }
 }
