@@ -56,7 +56,6 @@ fn main() {
 				.with_system(fight::attack)
 				.with_system(fight::remove_popup)
 				.with_system(fight::move_enemy)
-				//.with_system(fight::apply_gravity)
 		)
 		.add_system_set(
 			SystemSet::on_enter(GameState::Fight)
@@ -95,13 +94,14 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
 	));
 }
 
-fn setup_credits(mut commands: Commands, asset_server: Res<AssetServer>) {
+fn setup_credits(mut clear_color: ResMut<ClearColor>, mut commands: Commands, asset_server: Res<AssetServer>) {
 	//commands.spawn_bundle(Camera2dBundle::default());
 	//commands
 	//	.spawn_bundle(SpriteBundle {
 	//		texture: asset_server.load("hello_world_win.png"),
 	//		..default()
 	//	});
+	clear_color.0 = Color::BLACK;
 
 	commands
 		.spawn_bundle(SpriteBundle {

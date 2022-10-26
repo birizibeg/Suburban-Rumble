@@ -125,7 +125,6 @@ pub fn clear_conversation(
     dialogue: Query<Entity, With<DialogueBox>>,
 
 ) {
-    clear_color.0 = Color::BLACK;
     for entity in dialogue.iter() {
         commands.entity(entity).despawn();
     }

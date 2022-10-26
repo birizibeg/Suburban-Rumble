@@ -159,15 +159,22 @@ pub fn clear_fight(
     mut commands: Commands,
     mut clear_color: ResMut<ClearColor>,
     mut player: Query<Entity, With<Player>>,
-	mut enemy: Query<Entity, With<Enemy>>
+	mut enemy: Query<Entity, With<Enemy>>,
+	healthbar_tops: Query<Entity, With<HealthBarTop>>,
+	healthbar_bottoms: Query<Entity, With<HealthBarBottom>>,
 ) {
-    clear_color.0 = Color::BLACK;
-
     let player_eid = player.single_mut();
     commands.entity(player_eid).despawn();
 	let enemy_eid = enemy.single_mut();
 	commands.entity(enemy_eid).despawn();
+	for eid in healthbar_tops.iter() {
+		commands.entity(eid).despawn();
+	}
+	for eid in healthbar_bottoms.iter() {
+		commands.entity(eid).despawn();
+	}
 }
+
 fn check_collision(
 	apos: Vec3,
 	asize: Vec2,
@@ -193,7 +200,7 @@ pub fn move_player(
 	mut enemy: Query<&Transform, With<Enemy>>
 ) {
     let (mut player_transform, mut player_velocity) = player.single_mut();
-	let enemy_transform= enemy.single_mut();;
+	let enemy_transform= enemy.single_mut();
 
 	let mut deltav = Vec2::splat(0.);
 
@@ -382,14 +389,13 @@ pub fn move_enemy(
 
 pub fn attack(
 	input: Res<Input<KeyCode>>, 
-	mut player: Query<(&mut Transform, &mut Stats), Without<Enemy>>,
+	mut player: Query<&mut Transform, With<Player>>,
 	mut commands: Commands, 
-	mut enemy: Query<&Transform, With<Enemy>>,
+	//mut enemy: Query<(&Transform, &mut Stats), With<Enemy>>,
 	
-
-	){
-    let ( player_transform, mut player_health) = player.single_mut();
-	let enemy_transform = enemy.single_mut();
+){
+    let player_transform = player.single_mut();
+	//let (enemy_transform, mut enemy_stats) = enemy.single_mut();
 	
 	if input.just_released(KeyCode::P)
 	&& !input.pressed(KeyCode::D)
@@ -409,7 +415,7 @@ pub fn attack(
 			..default()
 		})
         .insert(DespawnTimer(Timer::from_seconds(0.1,false)));
-		if !check_collision(
+		/*if !check_collision(
 			//apos
 			Vec3::new(player_transform.translation.x+60., player_transform.translation.y+32., 0.1),
 			//asize
@@ -419,10 +425,10 @@ pub fn attack(
 			//bsize
 			Vec2::new(PLAYER_H/2., PLAYER_W/2.)
 		){
-			player_health.health -= 10.;
-			
+			enemy_stats.health -= 10.;
+			println!("Enemy hit! Current health: {}", enemy_stats.health);
 
-		}
+		}*/
 
 
     }
@@ -444,7 +450,7 @@ pub fn attack(
 			..default()
 		})
         .insert(DespawnTimer(Timer::from_seconds(0.1,false)));
-		if !check_collision(
+		/*if !check_collision(
 			//apos
 			Vec3::new(player_transform.translation.x+60., player_transform.translation.y-32., 0.1),
 			//asize
@@ -455,10 +461,12 @@ pub fn attack(
 			//bsize
 			Vec2::new(PLAYER_H/2., PLAYER_W/2.)
 		){
-			player_health.health -= 10.;
-		}
+			enemy_stats.health -= 10.;
+			println!("Enemy hit! Current health: {}", enemy_stats.health);
+		}*/
     }
 }
+
 pub fn remove_popup(
 	time: Res<Time>,
 	mut rmpopup: Query<(&mut DespawnTimer, &mut Visibility)>
@@ -470,40 +478,3 @@ pub fn remove_popup(
 		}
 	}
 }
-pub fn apply_gravity(
-    time: Res<Time>,
-    mut player: Query<(&mut Transform, &mut Velocity), With<Player>>
-){
-  
-    let (mut player_transform, mut player_velocity) = player.single_mut();
-
-	let mut deltav = Vec2::splat(0.);
-    deltav.y -= 1.;
-    let deltat = time.delta_seconds();
-	let acc = GRAVITY * deltat;
-
-	// calculate the velocity vector by multiplying it with the acceleration constant
-	player_velocity.velocity = if deltav.length() > 0. {
-		(player_velocity.velocity + (deltav.normalize_or_zero() * acc)).clamp_length_max(PLAYER_SPEED)
-	}
-	else if player_velocity.velocity.length() > acc {
-		player_velocity.velocity + (player_velocity.velocity.normalize_or_zero() * -acc)
-	}
-	else {
-		Vec2::splat(0.)
-	};
-	let change = player_velocity.velocity * deltat;
-
-    let new_pos = player_transform.translation + Vec3::new(
-		0.,
-		change.y,
-		0.,
-	);
-    
-    if new_pos.y >= FLOOR_HEIGHT + PLAYER_H/2. {
-		player_transform.translation = new_pos;
-	}
-	
-
-}
-
