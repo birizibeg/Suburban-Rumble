@@ -125,13 +125,11 @@ pub fn setup_conversation(
 // Despawns every entity used in the conversation state that is not also in fight or credits
 pub fn clear_conversation(
     mut commands: Commands,
-    mut clear_color: ResMut<ClearColor>,
     mut hero: Query<Entity, With<Hero>>,
 	mut enemy: Query<Entity, With<Enemy>>,
     dialogue: Query<Entity, With<DialogueBox>>,
 
 ) {
-    clear_color.0 = Color::BLACK;
     for entity in dialogue.iter() {
         commands.entity(entity).despawn();
     }
