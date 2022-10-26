@@ -242,7 +242,7 @@ fn change_gamestate(
         }
 		GameState::Fight => {
 			if keys.pressed(KeyCode::V) {
-				match game_state.set(GameState::Fight){
+				match game_state.set(GameState::Conversation){
 					Ok(_) => info!("GameState: Conversation"),
 					Err(_) => (),
 				}
