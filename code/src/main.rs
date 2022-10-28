@@ -4,7 +4,7 @@ use bevy::{
 };
 
 mod fight;
-
+mod conversation;
 const WIN_W: f32 = 1280.;
 const WIN_H: f32 = 720.;
 
@@ -14,14 +14,17 @@ enum GameState {
     Conversation,
     Fight,
 }
-
 #[derive(Component, Deref, DerefMut)]
 struct PopupTimer(Timer);
-
 #[derive(Component, Deref, DerefMut)]
 struct DespawnTimer(Timer);
+pub struct ConvInputEvent(String);
+pub struct ConvLossEvent();
+pub struct ConvWinEvent();
 
-mod conversation;
+pub struct CollideEvent(bool,String);
+
+
 fn main() {
 	App::new()
 		.insert_resource(WindowDescriptor {
@@ -32,7 +35,11 @@ fn main() {
 			..default()
 		})
 		.insert_resource(ClearColor(Color::BLACK))
-		.add_state(GameState::Fight)	//start the game in the fight state
+		.add_state(GameState::Conversation)	//start the game in the fight state
+		.add_event::<ConvInputEvent>()
+		.add_event::<ConvLossEvent>()
+		.add_event::<ConvWinEvent>()
+		.add_event::<CollideEvent>()
 		.add_plugins(DefaultPlugins)
 		.add_startup_system(setup)
 		.add_system_set(
@@ -56,7 +63,7 @@ fn main() {
 				.with_system(fight::attack)
 				.with_system(fight::remove_popup)
 				.with_system(fight::move_enemy)
-				//.with_system(fight::apply_gravity)
+				.with_system(fight::collision_handle)
 		)
 		.add_system_set(
 			SystemSet::on_enter(GameState::Fight)
@@ -78,30 +85,33 @@ fn main() {
 			SystemSet::on_update(GameState::Conversation)
 				.label("conversation")
 				.with_system(conversation::text_input)
+				.with_system(conversation::process_input)
 		)
 		.add_system(change_gamestate)
+		.add_system(conv_over)
 		.run();
 }
 
 fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
 	commands.spawn_bundle(Camera2dBundle::default());
 	commands.spawn_bundle(TextBundle::from_section(
-		"Press 1 for Conversation, 2 for Fight, 3 for Credits",
+		"Press \"V\" at any time to start over.",
 		TextStyle {
 			font: asset_server.load("fonts/SourceSansPro-Regular.ttf"),
-			font_size: 16.,
+			font_size: 25.0,
 			color: Color::WHITE,
 		}
 	));
 }
 
-fn setup_credits(mut commands: Commands, asset_server: Res<AssetServer>) {
+fn setup_credits(mut clear_color: ResMut<ClearColor>, mut commands: Commands, asset_server: Res<AssetServer>) {
 	//commands.spawn_bundle(Camera2dBundle::default());
 	//commands
 	//	.spawn_bundle(SpriteBundle {
 	//		texture: asset_server.load("hello_world_win.png"),
 	//		..default()
 	//	});
+	clear_color.0 = Color::BLACK;
 
 	commands
 		.spawn_bundle(SpriteBundle {
@@ -211,10 +221,31 @@ fn clear_credits(
 	}
 }
 
+// Has an event listener for a conversation 'loss' that sends the player to the fight state
+fn conv_over(
+	mut game_state: ResMut<State<GameState>>,
+	mut loss_reader: EventReader<ConvLossEvent>,
+	mut win_reader: EventReader<ConvWinEvent>
+) {
+	for _ev in loss_reader.iter() {
+		match game_state.set(GameState::Fight){
+			Ok(_) => info!("GameState: Fight"),
+			Err(_) => (),
+		}
+	}
+	for _ev in win_reader.iter() {
+		match game_state.set(GameState::Credits){
+			Ok(_) => info!("GameState: Credits"),
+			Err(_) => (),
+		}
+	}
+}
+
 // changes the current gamestate on keypress
 fn change_gamestate(
 	keys: Res<Input<KeyCode>>,
-	mut game_state: ResMut<State<GameState>>
+	mut game_state: ResMut<State<GameState>>,
+
 ) {
 	if keys.pressed(KeyCode::Key1) {	// change GameState to Conversation
 		match game_state.set(GameState::Conversation) {
@@ -222,16 +253,38 @@ fn change_gamestate(
 			Err(_) => (),
 		}
 	}
-	else if keys.pressed(KeyCode::Key2) {
-		match game_state.set(GameState::Fight){
-			Ok(_) => info!("GameState: Fight"),
-			Err(_) => (),
-		}
-	}
-	else if keys.pressed(KeyCode::Key3) {
-		match game_state.set(GameState::Credits) {
-			Ok(_) => info!("GameState: Credits"),
-			Err(_) => (),
-		}
+	else {
+		match game_state.current() {
+			GameState::Conversation => {
+				/*if keys.pressed(KeyCode::M) {
+					match game_state.set(GameState::Fight){
+						Ok(_) => info!("GameState: Fight"),
+						Err(_) => (),
+					}
+				}
+				else if keys.pressed(KeyCode::N) {
+					match game_state.set(GameState::Credits) {
+						Ok(_) => info!("GameState: Credits"),
+						Err(_) => (),
+					}
+				}*/
+			} 
+			GameState::Fight => {
+				if keys.pressed(KeyCode::V) {
+					match game_state.set(GameState::Conversation){
+						Ok(_) => info!("GameState: Conversation"),
+						Err(_) => (),
+					}
+				}
+			}
+			GameState::Credits => {
+				if keys.pressed(KeyCode::V) {
+					match game_state.set(GameState::Conversation){
+						Ok(_) => info!("GameState: Conversation"),
+						Err(_) => (),
+					}
+				}
+			} 
+		} 
 	}
 }
