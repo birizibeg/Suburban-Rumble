@@ -28,6 +28,7 @@ enum ConversationState {
 	BadEnding
 }
 
+struct Word(String, i8);
 
 // Spawn all entities to be used in the conversation part of the game
 pub fn setup_conversation(
@@ -51,7 +52,7 @@ pub fn setup_conversation(
 		texture: asset_server.load("hero.png"),
 		transform: Transform::from_xyz(-500., -225., 2.),
 		sprite: Sprite {
-            color: Color::BLUE,
+            color: Color::WHITE,
             custom_size: Some(Vec2::new(200., 200.)),
             ..default()
         },
@@ -59,10 +60,10 @@ pub fn setup_conversation(
 	}).insert(Hero);
 
 	commands.spawn_bundle(SpriteBundle {
-		texture: asset_server.load("enemy.png"),
+		texture: asset_server.load("CathyRobinson.png"),
 		transform: Transform::from_xyz(500., 200., 2.),
 		sprite: Sprite {
-            color: Color::RED,
+            color: Color::WHITE,
             custom_size: Some(Vec2::new(200., 200.)),
             ..default()
         },
@@ -175,14 +176,31 @@ pub fn process_input(
     mut loss_writer: EventWriter<ConvLossEvent>,
     mut win_writer: EventWriter<ConvWinEvent>
 ) {
+    let mut words = Vec::new();
+    let mut score = 0;
+    words.push(Word("awesome".to_string(), 10));
+    words.push(Word("very".to_string(), 10));
+    words.push(Word("yes".to_string(), 10));
+    words.push(Word("yeah".to_string(), 10));
+    words.push(Word("no".to_string(), -10));
+    words.push(Word("not".to_string(), -10));
     for input in ev_reader.iter() {
         let mut string = input.0.to_string();
         string.make_ascii_lowercase();
         string = string.trim_end().to_string();
-        if string.contains("get lost") || string.contains("no") || string.contains("you're stinky") {
-            loss_writer.send(ConvLossEvent()); // Trigger loss
-        } else if string.contains("sure") || string.contains("absolutely") || string.contains("yes") {
-            win_writer.send(ConvWinEvent()); // Trigger win
+        for word in string.split_whitespace(){
+            for check in words.iter() {
+                if &check.0 == word {
+                    println!("FOUND A WORD");
+                    score = score + &check.1;
+                }
+            }
+        }
+        println!("Score: {}", score);
+        if score < 0 {
+            loss_writer.send(ConvLossEvent());
+        } else {
+            win_writer.send(ConvWinEvent());
         }
     }
 }
