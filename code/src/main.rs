@@ -22,6 +22,8 @@ pub struct ConvInputEvent(String);
 pub struct ConvLossEvent();
 pub struct ConvWinEvent();
 
+pub struct CollideEvent(bool,String);
+
 
 fn main() {
 	App::new()
@@ -37,6 +39,7 @@ fn main() {
 		.add_event::<ConvInputEvent>()
 		.add_event::<ConvLossEvent>()
 		.add_event::<ConvWinEvent>()
+		.add_event::<CollideEvent>()
 		.add_plugins(DefaultPlugins)
 		.add_startup_system(setup)
 		.add_system_set(
@@ -60,6 +63,7 @@ fn main() {
 				.with_system(fight::attack)
 				.with_system(fight::remove_popup)
 				.with_system(fight::move_enemy)
+				.with_system(fight::collision_handle)
 		)
 		.add_system_set(
 			SystemSet::on_enter(GameState::Fight)
