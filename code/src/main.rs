@@ -256,7 +256,7 @@ fn change_gamestate(
 	else {
 		match game_state.current() {
 			GameState::Conversation => {
-				/*if keys.pressed(KeyCode::M) {
+				if keys.pressed(KeyCode::M) {
 					match game_state.set(GameState::Fight){
 						Ok(_) => info!("GameState: Fight"),
 						Err(_) => (),
@@ -267,7 +267,7 @@ fn change_gamestate(
 						Ok(_) => info!("GameState: Credits"),
 						Err(_) => (),
 					}
-				}*/
+				}
 			} 
 			GameState::Fight => {
 				if keys.pressed(KeyCode::V) {
