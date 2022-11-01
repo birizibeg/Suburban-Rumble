@@ -2,6 +2,8 @@ use bevy::{
     prelude::*
 };
 use bevy::sprite::collide_aabb::collide;
+use bevy::sprite::collide_aabb::Collision;
+use super::CollideEvent;
 
 const PLAYER_W: f32 = 64.;
 const PLAYER_H: f32 = 128.;
@@ -11,6 +13,10 @@ const ACCEL_RATE: f32 = 5000.;
 const GRAVITY: f32 = 2000.;
 const HEALTHBAR_X: f32 = 5.*100.;
 const HEALTHBAR_Y: f32 = 32.;
+const PUNCHATTACK: f32 =10.;
+const KICKATTACK: f32 =20.;
+
+
 
 #[derive(Component)]
 pub struct Player;
@@ -26,6 +32,7 @@ pub struct PlayerName(String);
 
 #[derive(Component)]
 pub struct EnemyName(String);
+
 
 // use a velocity component to track the player and enemy velocity
 #[derive(Component)]
@@ -54,23 +61,22 @@ pub struct HealthBarTop;
 #[derive(Component)]
 pub struct HealthBarBottom;
 
-pub struct StateMachine<S>{
+ pub struct StateMachine<S>{
 	state: S,
 }
 
-pub struct Stand {
+ pub struct Stand {
 	stand: std::time::Duration,
 }
 
-pub struct Move{
-	moving: u32:: x, u32: y;
+ pub struct Move{
+	x: f32,
+	y: f32,
 }
 
-pub struct Attack{
-	attack: u32:: x, u32: y;
+ pub struct Attack{
+	attack: f32
 }
-
-
 
 impl StateMachine<Stand> {
 	fn new() -> Self {
@@ -83,28 +89,56 @@ impl StateMachine<Stand> {
 }
 
 impl From<StateMachine<Stand>> for StateMachine<Move> {
-	fn from(val: StateMachine<Stand>) -> StateMachine<Move> { StateMachine {
-         state: Move{
-				moving: (1, 0),
-				
+	fn from(val: StateMachine<Stand>) -> StateMachine<Move> {
+	let mut enemy: Query<(&mut Transform, &mut Velocity), With<Enemy>>; 
+	//logic before transition
+	//let (mut enemy_transform, mut enemy_velocity) = enemy.single_mut();
+	let mut deltav = Vec2::splat(0.);
+	deltav.x = 1.;
+	deltav.y -= 1.;
+	let new_state = StateMachine {
+         	state: Move{
+				x : deltav.x,
+				y : deltav.y,
+
 		 }
-	} }
+	}; 
+	return new_state;
 }
 
-impl From<StateMachine<Move>> for StateMachine<Attack> {
-	fn from(val: StateMachine<Move>) -> StateMachine<Attack> {
+}
 
+/*impl From<StateMachine<Move>> for StateMachine<Attack> {
+	fn from(val: StateMachine<Move>) -> StateMachine<Attack> { 
+		//logic before transition
+		StateMachine  {
+			state: Attack{
+					attack: 1.,
+		}
+	} 
 	}
 }
 
 impl From<StateMachine<Attack>> for StateMachine<Move> {
 	fn from(val: StateMachine<Attack>) -> StateMachine<Move> {
-
+		//logic before transition
+		StateMachine  {
+			state: Move{
+					moving: 1.,
+			}
+		}
 	}
-}
+}*/
 
 impl From<StateMachine<Move>> for StateMachine<Stand> {
 	fn from(val: StateMachine<Move>) -> StateMachine<Stand> {
+		//logic before transition
+		StateMachine  {
+			state: Stand{
+				stand: std::time::Duration::new(0 , 0),
+			}
+
+		}
 
 	}
 }
@@ -233,7 +267,7 @@ fn check_collision(
 	apos: Vec3,
 	asize: Vec2,
 	bpos: Vec3, 
-	bsize: Vec2
+	bsize: Vec2,
 )->bool{
 	let collision = collide(
 		apos,
@@ -250,6 +284,7 @@ fn check_collision(
 pub fn move_player(
     time: Res<Time>,
     input: Res<Input<KeyCode>>,
+	mut player_send: EventWriter<CollideEvent>,
     mut player: Query<(&mut Transform, &mut Velocity), Without<Enemy>>,
 	mut enemy: Query<&Transform, With<Enemy>>
 ) {
@@ -316,8 +351,8 @@ pub fn move_player(
 		0.,
 		0.,
 	);
-
-	if !check_collision(
+	//calls collision function to see if a collision happened  
+	let collide=check_collision(
 		//apos
 		new_pos,
 		//asize
@@ -326,12 +361,33 @@ pub fn move_player(
 		enemy_transform.translation,
 		//bsize
 		Vec2::new(PLAYER_H/2.,PLAYER_W/2.)
-	) && new_pos.x >= -(crate::WIN_W/2.) + PLAYER_W/2. 
+	);
+
+	// if a collision does happen then an event is sent to the collision_handle system 
+	// A string is also sent that indicates on what side the collision occurred relative to the player
+	if collide{
+		if new_pos.x<enemy_transform.translation.x{
+			player_send.send(CollideEvent(true,String::from("rightside")));
+		}
+		if new_pos.x>enemy_transform.translation.x{
+			player_send.send(CollideEvent(true,String::from("leftside")));
+		}
+
+	}
+
+	// if the new pos does not collide with the enemy and is inside the window then the player pos is set to the new pos
+	if !collide 
+	  && new_pos.x >= -(crate::WIN_W/2.) + PLAYER_W/2. 
 	  && new_pos.x <= crate::WIN_W/2. - PLAYER_W/2.
 	{
 		
 		player_transform.translation = new_pos;
+		player_send.send(CollideEvent(false,String::from("nocollision")));
+
 	}
+	 
+
+
 	// check for player staying within the window with new x position
 	//if new_pos.x >= -(crate::WIN_W/2.) + PLAYER_W/2. && new_pos.x <= crate::WIN_W/2. - PLAYER_W/2. {
 	//	player_transform.translation = new_pos;
@@ -347,43 +403,233 @@ pub fn move_player(
 		},
 		0.,
 	);
-	if !check_collision(
+
+	//The code below is similar to the one above except it deals with the y position
+	let collide=check_collision(
 		//apos
 		new_pos,
 		//asize
-		Vec2::new(PLAYER_H/2.,PLAYER_W/2.),
+		Vec2::new(PLAYER_H/2., PLAYER_W/2.),
 		//bpos
-		enemy_transform.translation,
+		 Vec3::new(enemy_transform.translation.x,enemy_transform.translation.y+PLAYER_H/2.,enemy_transform.translation.z),
 		//bsize
 		Vec2::new(PLAYER_H/2.,PLAYER_W/2.)
+	);
 
-	)   && new_pos.y >= FLOOR_HEIGHT + PLAYER_H/2. 
-		&& new_pos.y <= crate::WIN_H/2. - PLAYER_H/2.
+	if collide{
+		if new_pos.y<enemy_transform.translation.y{
+			player_send.send(CollideEvent(true,String::from("topside")));
+		}
+		if new_pos.y>enemy_transform.translation.y{
+			player_send.send(CollideEvent(true,String::from("bottomside")));
+		}
+
+	}
+	if !collide
+	   && new_pos.y >= FLOOR_HEIGHT + PLAYER_H/2. 
+	   && new_pos.y <= crate::WIN_H/2. - PLAYER_H/2.
 		
 	{
 		player_transform.translation = new_pos;
+		player_send.send(CollideEvent(false,String::from("nocollision")));
+
 	}
+	
 	// check for player staying within the window and above the floor with new y position
 	//if new_pos.y >= FLOOR_HEIGHT + PLAYER_H/2. && new_pos.y <= crate::WIN_H/2. - PLAYER_H/2. {
 	//	player_transform.translation = new_pos;
 	//}
 }
 
+// collision_handle system deals with all the collisions and what to do depending on the kind of collision
+pub fn collision_handle(
+	mut commands: Commands,
+	enemy_healthbar_en: Query<Entity, (With<EnemyName>,With<HealthBarTop>)>,
+	mut player_receive: EventReader<CollideEvent>,
+	mut player: Query<&mut Transform,With<Player>>,
+	mut enemy: Query<(&mut Transform, &mut Velocity, &mut Stats), (With<Enemy>, Without<Player>)>
+){
+	let mut player_transform = player.single_mut();
+	let (enemy_transform, mut enemy_velocity, mut enemy_stats) = enemy.single_mut();
+		for p in player_receive.iter(){
+			if p.0 == true {
+				// if the collision is on the right side of the player then just adjust the player x pos so it can't pass through the enemy
+				if p.1.contains("rightside"){
+				player_transform.translation=player_transform.translation + Vec3::new(
+					enemy_transform.translation.x-player_transform.translation.x-PLAYER_W,
+					0.,
+					0.,
+				);
+			  }else if p.1.contains("leftside") {
+				// if the collision is on the left side of the player then just adjust the player x pos so it can't pass through the enemy
+				player_transform.translation=player_transform.translation - Vec3::new(
+					player_transform.translation.x-enemy_transform.translation.x-PLAYER_W,
+					0.,
+					0.,
+				);
+			  }else if p.1.contains("bottomside") {
+				// This is supposed to handle collisions for the bottom side of the player
+				// for example if the player jumps on the enemy then there would be a collision on the bottom side of the player
+				// It is currently not working because I think the gravity being applied needs to be taken into consideration
+				player_transform.translation= Vec3::new(
+					player_transform.translation.x,
+					-enemy_transform.translation.y + PLAYER_H/2.,
+					player_transform.translation.z,
+				);
+			  }else if p.1.contains("punchleft"){
+				// this handles punch collisions 
+				// The current entity is despawned and a new entity with updated health, size and pos is spawned 
+				enemy_velocity.velocity = enemy_velocity.velocity + Vec2::new(
+					700.,
+					0.,
+			  	);
+				if enemy_stats.health-PUNCHATTACK > 0.{ 
+				enemy_stats.health=enemy_stats.health-PUNCHATTACK;
+				} else {
+					enemy_stats.health=0.;
+				}
+				let enemy_healthbar_eid=enemy_healthbar_en.single();
+				let x_size=5.*enemy_stats.health;
+				let x_pos=(crate::WIN_W/2. - 5.*enemy_stats.health/2.)-16.;
+				commands.entity(enemy_healthbar_eid).despawn();
+				commands.spawn_bundle(SpriteBundle {
+					sprite: Sprite {
+						color: Color::LIME_GREEN,
+						custom_size: Some(Vec2::new(x_size, HEALTHBAR_Y)),
+						..default()
+					},
+					transform: Transform {
+						translation: Vec3::new( x_pos, (crate::WIN_H/2. - HEALTHBAR_Y/2.)-16., 1.),
+						..default()
+					},
+					..default()
+				})
+				.insert(HealthBarTop)
+				.insert(EnemyName(String::from("dummy")));
+				if enemy_stats.health==0.{
+					// For now this just resets the enemy health
+					// In the future we can add code to transition to the next fight or conversation
+					enemy_stats.health=110.;
+				}
+			  }else if p.1.contains("punchright"){
+				// this handles punch collisions 
+				// The current entity is despawned and a new entity with updated health, size and pos is spawned 
+				enemy_velocity.velocity = enemy_velocity.velocity + Vec2::new(
+					-700.,
+					0.,
+			  	);
+				if enemy_stats.health-PUNCHATTACK > 0.{ 
+				enemy_stats.health=enemy_stats.health-PUNCHATTACK;
+				} else {
+					enemy_stats.health=0.;
+				}
+				let enemy_healthbar_eid=enemy_healthbar_en.single();
+				let x_size=5.*enemy_stats.health;
+				let x_pos=(crate::WIN_W/2. - 5.*enemy_stats.health/2.)-16.;
+				commands.entity(enemy_healthbar_eid).despawn();
+				commands.spawn_bundle(SpriteBundle {
+					sprite: Sprite {
+						color: Color::LIME_GREEN,
+						custom_size: Some(Vec2::new(x_size, HEALTHBAR_Y)),
+						..default()
+					},
+					transform: Transform {
+						translation: Vec3::new( x_pos, (crate::WIN_H/2. - HEALTHBAR_Y/2.)-16., 1.),
+						..default()
+					},
+					..default()
+				})
+				.insert(HealthBarTop)
+				.insert(EnemyName(String::from("dummy")));
+				if enemy_stats.health==0.{
+					// For now this just resets the enemy health
+					// In the future we can add code to transition to the next fight or conversation
+					enemy_stats.health=110.;
+				}
+			  }else if p.1.contains("kickleft"){
+				enemy_velocity.velocity = enemy_velocity.velocity + Vec2::new(
+					1000.,
+					0.,
+			  	);
+				if enemy_stats.health - KICKATTACK > 0. {
+					enemy_stats.health=enemy_stats.health-20.;
+					}else{
+						enemy_stats.health=0.;
+					}
+					println!("Enemy health is {}",enemy_stats.health);
+					let enemy_healthbar_eid=enemy_healthbar_en.single();
+					let x_size=5.*enemy_stats.health;
+					let x_pos=(crate::WIN_W/2. - 5.*enemy_stats.health/2.)-16.;
+					commands.entity(enemy_healthbar_eid).despawn();
+					commands.spawn_bundle(SpriteBundle {
+						sprite: Sprite {
+							color: Color::LIME_GREEN,
+							custom_size: Some(Vec2::new(x_size, HEALTHBAR_Y)),
+							..default()
+						},
+						transform: Transform {
+							translation: Vec3::new( x_pos, (crate::WIN_H/2. - HEALTHBAR_Y/2.)-16., 1.),
+							..default()
+						},
+						..default()
+					})
+					.insert(HealthBarTop)
+					.insert(EnemyName(String::from("dummy")));
+					if enemy_stats.health==0.{
+						enemy_stats.health=120.;
+					}
+			  } else if p.1.contains("kickright"){
+				enemy_velocity.velocity = enemy_velocity.velocity + Vec2::new(
+					-1000.,
+					0.,
+			  	);
+				if enemy_stats.health - KICKATTACK > 0. {
+					enemy_stats.health=enemy_stats.health-20.;
+					}else{
+						enemy_stats.health=0.;
+					}
+					println!("Enemy health is {}",enemy_stats.health);
+					let enemy_healthbar_eid=enemy_healthbar_en.single();
+					let x_size=5.*enemy_stats.health;
+					let x_pos=(crate::WIN_W/2. - 5.*enemy_stats.health/2.)-16.;
+					commands.entity(enemy_healthbar_eid).despawn();
+					commands.spawn_bundle(SpriteBundle {
+						sprite: Sprite {
+							color: Color::LIME_GREEN,
+							custom_size: Some(Vec2::new(x_size, HEALTHBAR_Y)),
+							..default()
+						},
+						transform: Transform {
+							translation: Vec3::new( x_pos, (crate::WIN_H/2. - HEALTHBAR_Y/2.)-16., 1.),
+							..default()
+						},
+						..default()
+					})
+					.insert(HealthBarTop)
+					.insert(EnemyName(String::from("dummy")));
+					if enemy_stats.health==0.{
+						enemy_stats.health=120.;
+					}
+			  }
+			}
+		}
+}
+
 //doesn't do anything right now other than apply gravity to the enemy
 //movement decision-making will come later as a part of AI
 pub fn move_enemy(
 	time: Res<Time>,
-	mut enemy: Query<(&mut Transform, &mut Velocity), With<Enemy>>,
+	mut enemy: Query<(&mut Transform, &mut Velocity), With<Enemy>>
 ) {
 	let (mut enemy_transform, mut enemy_velocity) = enemy.single_mut();
 
 	let mut deltav = Vec2::splat(0.);
-	let state = StateMachine::new(0);
-	// (this is where decision making about movement will go)
-	let state = StateMachine::<Move>::from(state);
 
-	//deltav.x = state;
-	//deltav.y -= 1.;	// just make the enemy affected by gravity for now
+	let begin_state = StateMachine::new();
+	// (this is where decision making about movement will go)
+	let next_state = StateMachine::<Move>::from(begin_state);
+
+	//deltav.y -= 1.// just make the enemy affected by gravity for now
 	
 	// calculating by deltat instead of just relying on frames *should* normalize for different framerates
 	let deltat = time.delta_seconds();
@@ -445,13 +691,18 @@ pub fn move_enemy(
 
 pub fn attack(
 	input: Res<Input<KeyCode>>, 
+	mut player_send: EventWriter<CollideEvent>,
 	mut player: Query<&mut Transform, With<Player>>,
 	mut commands: Commands, 
-	//mut enemy: Query<(&Transform, &mut Stats), With<Enemy>>,
+	mut enemy: Query<&mut Transform, (With<Enemy>, Without<Player>)>,
 	
 ){
     let player_transform = player.single_mut();
-	//let (enemy_transform, mut enemy_stats) = enemy.single_mut();
+	let enemy_transform = enemy.single_mut();
+	let mut attack_xpos=60.;
+	if player_transform.translation.x>enemy_transform.translation.x{
+		 attack_xpos=-60.;
+	}
 	
 	if input.just_released(KeyCode::P)
 	&& !input.pressed(KeyCode::D)
@@ -465,32 +716,60 @@ pub fn attack(
 				..default()
 			},
             transform: Transform {
-            translation: Vec3::new(player_transform.translation.x+60., player_transform.translation.y+32., 0.1),
+            translation: Vec3::new(player_transform.translation.x+attack_xpos, player_transform.translation.y+32., 0.),
             ..default()
         },
 			..default()
 		})
         .insert(DespawnTimer(Timer::from_seconds(0.1,false)));
-		/*if !check_collision(
+		// The collision function is called to see if a collision occurred
+		// if there was a collision a signal is sent to the collision_handle system
+		/*if check_collision(
 			//apos
-			Vec3::new(player_transform.translation.x+60., player_transform.translation.y+32., 0.1),
+			Vec3::new(player_transform.translation.x+attack_xpos, player_transform.translation.y+32., 0.),
 			//asize
-			Vec2::new(player_transform.translation.x+60., player_transform.translation.y+32.),
+			Vec2::new(80.,32.),
 			//bpos
-			Vec3::new(enemy_transform.translation.x, enemy_transform.translation.y, 0.1),
+			Vec3::new(enemy_transform.translation.x, enemy_transform.translation.y+32., 0.),
 			//bsize
 			Vec2::new(PLAYER_H/2., PLAYER_W/2.)
-		){
-			enemy_stats.health -= 10.;
-			println!("Enemy hit! Current health: {}", enemy_stats.health);
+		) {
+			println!("Enemy hit! Current health:");
+			player_send.send(CollideEvent(true,String::from("punch")));
 
 		}*/
+		let punch_collide_result = collide(
+			//apos
+			Vec3::new(player_transform.translation.x+attack_xpos, player_transform.translation.y+32., 0.),
+			//asize
+			Vec2::new(80.,32.),
+			//bpos
+			Vec3::new(enemy_transform.translation.x, enemy_transform.translation.y, 0.),
+			//bsize
+			Vec2::new(PLAYER_W, PLAYER_H)
+		);
+		if let Some(side) = punch_collide_result {
+			match side {
+				Collision::Left => player_send.send(CollideEvent(true, String::from("punchleft"))),
+				Collision::Right => player_send.send(CollideEvent(true, String::from("punchright"))),
+				Collision::Inside => {
+					if player_transform.translation.x < enemy_transform.translation.x {
+						player_send.send(CollideEvent(true, String::from("punchleft")));
+					}
+					else if player_transform.translation.x > enemy_transform.translation.x {
+						player_send.send(CollideEvent(true, String::from("punchright")));
+					}
+				},
+				Collision::Top => (),
+				Collision::Bottom => (),	// top and bottom not used for knockback effect
+			}
+		}
 
 
     }
-	if input.just_released(KeyCode::K)
-	&& !input.pressed(KeyCode::D)
-	&& !input.pressed(KeyCode::A){
+	if input.just_released(KeyCode::K)	// having to wait until the key is released feels clunky
+	&& !input.pressed(KeyCode::D)	// maybe add a timer so the hitbox lasts for a set time and then you can
+	&& !input.pressed(KeyCode::A){	// attack again after a "recovery window"
 
         commands
 		.spawn_bundle(SpriteBundle {
@@ -500,26 +779,54 @@ pub fn attack(
 				..default()
 			},
             transform: Transform {
-            translation: Vec3::new(player_transform.translation.x+60., player_transform.translation.y-32., 0.1),
+            translation: Vec3::new(player_transform.translation.x+attack_xpos, player_transform.translation.y-32., 0.1),
             ..default()
         },
 			..default()
 		})
         .insert(DespawnTimer(Timer::from_seconds(0.1,false)));
-		/*if !check_collision(
+		/*if check_collision(
 			//apos
-			Vec3::new(player_transform.translation.x+60., player_transform.translation.y-32., 0.1),
+			Vec3::new(player_transform.translation.x+attack_xpos, player_transform.translation.y-32., 0.),
 			//asize
-			///might need to be changed ().translation.x+60 )/2. just like with player...
-			Vec2::new(player_transform.translation.x+60., player_transform.translation.y-32.),
+			Vec2::new(80.,32.),
 			//bpos
-			enemy_transform.translation,
+			Vec3::new(enemy_transform.translation.x, enemy_transform.translation.y-32., 0.),
 			//bsize
 			Vec2::new(PLAYER_H/2., PLAYER_W/2.)
 		){
-			enemy_stats.health -= 10.;
-			println!("Enemy hit! Current health: {}", enemy_stats.health);
+			//enemy_stats.health -= 10.;
+			println!("Enemy hit! Current health:");
+			player_send.send(CollideEvent(true,String::from("kick")));
+
 		}*/
+		let kick_collide_result = collide(
+			//apos
+			Vec3::new(player_transform.translation.x+attack_xpos, player_transform.translation.y-32., 0.),
+			//asize
+			Vec2::new(80.,32.),
+			//bpos
+			Vec3::new(enemy_transform.translation.x, enemy_transform.translation.y, 0.),
+			//bsize
+			Vec2::new(PLAYER_W, PLAYER_H)
+		);
+		if let Some(side) = kick_collide_result {
+			match side {
+				Collision::Left => player_send.send(CollideEvent(true, String::from("kickleft"))),
+				Collision::Right => player_send.send(CollideEvent(true, String::from("kickright"))),
+				Collision::Inside => {
+					if player_transform.translation.x < enemy_transform.translation.x {
+						player_send.send(CollideEvent(true, String::from("kickleft")));
+					}
+					else if player_transform.translation.x > enemy_transform.translation.x {
+						player_send.send(CollideEvent(true, String::from("kickright")));
+					}
+				},
+				Collision::Top => (),
+				Collision::Bottom => (),	// top and bottom not used for knockback effect
+			}
+		}
+
     }
 }
 
