@@ -177,13 +177,14 @@ pub fn process_input(
     mut win_writer: EventWriter<ConvWinEvent>
 ) {
     let mut words = Vec::new();
-    let mut score = 0;
+    let mut score = 20;
     words.push(Word("awesome".to_string(), 10));
     words.push(Word("very".to_string(), 10));
     words.push(Word("yes".to_string(), 10));
     words.push(Word("yeah".to_string(), 10));
     words.push(Word("no".to_string(), -10));
     words.push(Word("not".to_string(), -10));
+    words.push(Word("stinky".to_string(), -10));
     for input in ev_reader.iter() {
         let mut string = input.0.to_string();
         string.make_ascii_lowercase();
@@ -197,7 +198,7 @@ pub fn process_input(
             }
         }
         println!("Score: {}", score);
-        if score < 0 {
+        if score <= 0 {
             loss_writer.send(ConvLossEvent());
         } else {
             win_writer.send(ConvWinEvent());
