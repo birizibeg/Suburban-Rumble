@@ -61,6 +61,88 @@ pub struct HealthBarTop;
 #[derive(Component)]
 pub struct HealthBarBottom;
 
+ pub struct StateMachine<S>{
+	state: S,
+}
+
+ pub struct Stand {
+	stand: std::time::Duration,
+}
+
+ pub struct Move{
+	x: f32,
+	y: f32,
+}
+
+ pub struct Attack{
+	attack: f32
+}
+
+impl StateMachine<Stand> {
+	fn new() -> Self {
+		StateMachine { 
+			state: Stand{
+				stand: std::time::Duration::new(0 , 0), 
+			}
+	}
+}
+}
+
+impl From<StateMachine<Stand>> for StateMachine<Move> {
+	fn from(val: StateMachine<Stand>) -> StateMachine<Move> {
+	let mut enemy: Query<(&mut Transform, &mut Velocity), With<Enemy>>; 
+	//logic before transition
+	//let (mut enemy_transform, mut enemy_velocity) = enemy.single_mut();
+	let mut deltav = Vec2::splat(0.);
+	deltav.x = 1.;
+	deltav.y -= 1.;
+	let new_state = StateMachine {
+         	state: Move{
+				x : deltav.x,
+				y : deltav.y,
+
+		 }
+	}; 
+	return new_state;
+}
+
+}
+
+/*impl From<StateMachine<Move>> for StateMachine<Attack> {
+	fn from(val: StateMachine<Move>) -> StateMachine<Attack> { 
+		//logic before transition
+		StateMachine  {
+			state: Attack{
+					attack: 1.,
+		}
+	} 
+	}
+}
+
+impl From<StateMachine<Attack>> for StateMachine<Move> {
+	fn from(val: StateMachine<Attack>) -> StateMachine<Move> {
+		//logic before transition
+		StateMachine  {
+			state: Move{
+					moving: 1.,
+			}
+		}
+	}
+}*/
+
+impl From<StateMachine<Move>> for StateMachine<Stand> {
+	fn from(val: StateMachine<Move>) -> StateMachine<Stand> {
+		//logic before transition
+		StateMachine  {
+			state: Stand{
+				stand: std::time::Duration::new(0 , 0),
+			}
+
+		}
+
+	}
+}
+
 pub fn setup_fight(mut commands: Commands, mut clear_color: ResMut<ClearColor>) {
     clear_color.0 = Color::DARK_GRAY;	// subject to change
 
@@ -543,9 +625,11 @@ pub fn move_enemy(
 
 	let mut deltav = Vec2::splat(0.);
 
+	let begin_state = StateMachine::new();
 	// (this is where decision making about movement will go)
+	let next_state = StateMachine::<Move>::from(begin_state);
 
-	deltav.y -= 1.;	// just make the enemy affected by gravity for now
+	deltav.y -= 1.// just make the enemy affected by gravity for now
 	
 	// calculating by deltat instead of just relying on frames *should* normalize for different framerates
 	let deltat = time.delta_seconds();
