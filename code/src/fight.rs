@@ -333,8 +333,13 @@ pub fn move_player(
 	let new_vel_y = if deltav.y > 0. {
 		//player has jumped
 		deltav.normalize_or_zero().y * (grav * 25.)
-	} else if deltav.y < 0. {
+	} else if (deltav.y < 0.
+		&& player_transform.translation.y!=enemy_transform.translation.y+PLAYER_H){
 		//player is falling/not jumping
+		player_velocity.velocity.y + (deltav.normalize_or_zero().y * grav)
+	} else if(player_transform.translation.y==enemy_transform.translation.y+PLAYER_H 
+		&& (player_transform.translation.x+PLAYER_W/2.0<=enemy_transform.translation.x-PLAYER_W/2.0
+		|| player_transform.translation.x-PLAYER_W/2.0>=enemy_transform.translation.x+PLAYER_W/2.0)){
 		player_velocity.velocity.y + (deltav.normalize_or_zero().y * grav)
 	} else {
 		0.
@@ -383,7 +388,6 @@ pub fn move_player(
 		
 		player_transform.translation = new_pos;
 		player_send.send(CollideEvent(false,String::from("nocollision")));
-
 	}
 	 
 
@@ -403,7 +407,7 @@ pub fn move_player(
 		},
 		0.,
 	);
-
+	
 	//The code below is similar to the one above except it deals with the y position
 	let collide=check_collision(
 		//apos
@@ -411,16 +415,16 @@ pub fn move_player(
 		//asize
 		Vec2::new(PLAYER_H/2., PLAYER_W/2.),
 		//bpos
-		 Vec3::new(enemy_transform.translation.x,enemy_transform.translation.y+PLAYER_H/2.,enemy_transform.translation.z),
+		 Vec3::new(enemy_transform.translation.x,enemy_transform.translation.y+PLAYER_H,enemy_transform.translation.z),
 		//bsize
 		Vec2::new(PLAYER_H/2.,PLAYER_W/2.)
 	);
 
 	if collide{
-		if new_pos.y<enemy_transform.translation.y{
+		if new_pos.y<enemy_transform.translation.y+PLAYER_H{
 			player_send.send(CollideEvent(true,String::from("topside")));
 		}
-		if new_pos.y>enemy_transform.translation.y{
+		if new_pos.y>=enemy_transform.translation.y+PLAYER_H{
 			player_send.send(CollideEvent(true,String::from("bottomside")));
 		}
 
@@ -473,7 +477,7 @@ pub fn collision_handle(
 				// It is currently not working because I think the gravity being applied needs to be taken into consideration
 				player_transform.translation= Vec3::new(
 					player_transform.translation.x,
-					-enemy_transform.translation.y + PLAYER_H/2.,
+					enemy_transform.translation.y + PLAYER_H,
 					player_transform.translation.z,
 				);
 			  }else if p.1.contains("punchleft"){
