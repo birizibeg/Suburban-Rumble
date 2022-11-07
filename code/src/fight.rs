@@ -629,7 +629,7 @@ pub fn move_enemy(
 	// (this is where decision making about movement will go)
 	let next_state = StateMachine::<Move>::from(begin_state);
 
-	deltav.y -= 1.// just make the enemy affected by gravity for now
+	deltav.y -= 1.;// just make the enemy affected by gravity for now
 	
 	// calculating by deltat instead of just relying on frames *should* normalize for different framerates
 	let deltat = time.delta_seconds();
