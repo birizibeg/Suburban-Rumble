@@ -61,9 +61,11 @@ fn main() {
 				.label("fight")
 				.with_system(fight::move_player)
 				.with_system(fight::attack)
-				.with_system(fight::remove_popup)
+				//.with_system(fight::remove_popup)
 				.with_system(fight::move_enemy)
 				.with_system(fight::collision_handle)
+				.with_system(fight::block)
+				.with_system(fight::player_remove_attack)
 		)
 		.add_system_set(
 			SystemSet::on_enter(GameState::Fight)
