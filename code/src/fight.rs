@@ -33,6 +33,8 @@ pub struct PlayerName(String);
 #[derive(Component)]
 pub struct EnemyName(String);
 
+#[derive(Component)]
+pub struct PlayerAttack;	// used to identify attacks done by the player
 
 // use a velocity component to track the player and enemy velocity
 #[derive(Component)]
@@ -53,6 +55,20 @@ pub struct Stats {
 impl Stats {
 	fn new() -> Self {
 		Self { health: 100. }	// start every entity at 100 health
+	}
+}
+
+#[derive(Component)]
+pub struct Actions {	// actions struct to handle
+	attacking: bool,
+	blocking: bool,
+}
+impl Actions {
+	fn new() -> Self {
+		Self { 
+			attacking: false,
+			blocking: false,
+		}
 	}
 }
 
@@ -161,6 +177,7 @@ pub fn setup_fight(mut commands: Commands, mut clear_color: ResMut<ClearColor>) 
     })
     .insert(Velocity::new())
 	.insert(Stats::new())
+	.insert(Actions::new())
     .insert(Player);
 
 	// spawn a dummy enemy sprite
@@ -178,6 +195,7 @@ pub fn setup_fight(mut commands: Commands, mut clear_color: ResMut<ClearColor>) 
 	})
 	.insert(Velocity::new())
 	.insert(Stats::new())
+	.insert(Actions::new())
 	.insert(Enemy);
 
 	// spawn player health bar
@@ -285,24 +303,25 @@ pub fn move_player(
     time: Res<Time>,
     input: Res<Input<KeyCode>>,
 	mut player_send: EventWriter<CollideEvent>,
-    mut player: Query<(&mut Transform, &mut Velocity), Without<Enemy>>,
+    mut player: Query<(&mut Transform, &mut Velocity, &mut Actions), Without<Enemy>>,
 	mut enemy: Query<&Transform, With<Enemy>>
 ) {
-    let (mut player_transform, mut player_velocity) = player.single_mut();
+    let (mut player_transform, mut player_velocity, player_actions) = player.single_mut();
 	let enemy_transform= enemy.single_mut();
 
 	let mut deltav = Vec2::splat(0.);
 
-	if input.pressed(KeyCode::A) {
+	if input.pressed(KeyCode::A) && !(player_actions.blocking) && !(player_actions.attacking) {
 		deltav.x -= 1.;
 	}
 
-	if input.pressed(KeyCode::D) {
+	if input.pressed(KeyCode::D) && !(player_actions.blocking) && !(player_actions.attacking) {
 		deltav.x += 1.;
 	}
 
 	// player needs to be on the floor to jump, hence the floor height check
-	if input.pressed(KeyCode::W) && player_transform.translation.y <= (FLOOR_HEIGHT + PLAYER_H) {
+	if input.pressed(KeyCode::W) && player_transform.translation.y <= (FLOOR_HEIGHT + PLAYER_H)
+		&& !(player_actions.blocking) && !(player_actions.attacking) {
 		deltav.y += 1.;
 	}
 	else {
@@ -333,13 +352,13 @@ pub fn move_player(
 	let new_vel_y = if deltav.y > 0. {
 		//player has jumped
 		deltav.normalize_or_zero().y * (grav * 25.)
-	} else if (deltav.y < 0.
-		&& player_transform.translation.y!=enemy_transform.translation.y+PLAYER_H){
+	} else if deltav.y < 0.
+		&& player_transform.translation.y!=enemy_transform.translation.y+PLAYER_H {
 		//player is falling/not jumping
 		player_velocity.velocity.y + (deltav.normalize_or_zero().y * grav)
-	} else if(player_transform.translation.y==enemy_transform.translation.y+PLAYER_H 
+	} else if player_transform.translation.y==enemy_transform.translation.y+PLAYER_H 
 		&& (player_transform.translation.x+PLAYER_W/2.0<=enemy_transform.translation.x-PLAYER_W/2.0
-		|| player_transform.translation.x-PLAYER_W/2.0>=enemy_transform.translation.x+PLAYER_W/2.0)){
+		|| player_transform.translation.x-PLAYER_W/2.0>=enemy_transform.translation.x+PLAYER_W/2.0) {
 		player_velocity.velocity.y + (deltav.normalize_or_zero().y * grav)
 	} else {
 		0.
@@ -696,21 +715,24 @@ pub fn move_enemy(
 pub fn attack(
 	input: Res<Input<KeyCode>>, 
 	mut player_send: EventWriter<CollideEvent>,
-	mut player: Query<&mut Transform, With<Player>>,
+	mut player: Query<(&mut Transform, &mut Actions), With<Player>>,
 	mut commands: Commands, 
 	mut enemy: Query<&mut Transform, (With<Enemy>, Without<Player>)>,
 	
 ){
-    let player_transform = player.single_mut();
+    let (player_transform, mut player_actions) = player.single_mut();
 	let enemy_transform = enemy.single_mut();
 	let mut attack_xpos=60.;
 	if player_transform.translation.x>enemy_transform.translation.x{
 		 attack_xpos=-60.;
 	}
 	
-	if input.just_released(KeyCode::P)
-	&& !input.pressed(KeyCode::D)
-	&& !input.pressed(KeyCode::A){
+	if input.just_pressed(KeyCode::P)
+	//&& !input.pressed(KeyCode::D)
+	//&& !input.pressed(KeyCode::A)
+	&& !(player_actions.blocking)
+	&& !(player_actions.attacking) {
+		player_actions.attacking = true;
 
         commands
 		.spawn_bundle(SpriteBundle {
@@ -725,7 +747,8 @@ pub fn attack(
         },
 			..default()
 		})
-        .insert(DespawnTimer(Timer::from_seconds(0.1,false)));
+        .insert(DespawnTimer(Timer::from_seconds(0.2,false)))
+		.insert(PlayerAttack);
 		// The collision function is called to see if a collision occurred
 		// if there was a collision a signal is sent to the collision_handle system
 		/*if check_collision(
@@ -771,9 +794,12 @@ pub fn attack(
 
 
     }
-	if input.just_released(KeyCode::K)	// having to wait until the key is released feels clunky
-	&& !input.pressed(KeyCode::D)	// maybe add a timer so the hitbox lasts for a set time and then you can
-	&& !input.pressed(KeyCode::A){	// attack again after a "recovery window"
+	if input.just_pressed(KeyCode::K)	// having to wait until the key is released feels clunky
+	//&& !input.pressed(KeyCode::D)	// maybe add a timer so the hitbox lasts for a set time and then you can
+	//&& !input.pressed(KeyCode::A)	// attack again after a "recovery window"
+	&& !(player_actions.blocking) 
+	&& !(player_actions.attacking) {	
+		player_actions.attacking = true;
 
         commands
 		.spawn_bundle(SpriteBundle {
@@ -788,7 +814,8 @@ pub fn attack(
         },
 			..default()
 		})
-        .insert(DespawnTimer(Timer::from_seconds(0.1,false)));
+        .insert(DespawnTimer(Timer::from_seconds(0.4,false)))
+		.insert(PlayerAttack);
 		/*if check_collision(
 			//apos
 			Vec3::new(player_transform.translation.x+attack_xpos, player_transform.translation.y-32., 0.),
@@ -834,6 +861,22 @@ pub fn attack(
     }
 }
 
+pub fn block(
+	input: Res<Input<KeyCode>>, 
+	mut player: Query<(&mut Sprite, &mut Actions), With<Player>>,
+) {
+	let (mut player_sprite, mut player_actions) = player.single_mut();
+
+	if input.pressed(KeyCode::B) && !(player_actions.attacking) {
+		player_actions.blocking = true;
+		player_sprite.color = Color::MIDNIGHT_BLUE;	// change player sprite color so we know the blocking is working
+	}
+	if input.just_released(KeyCode::B) {
+		player_actions.blocking = false;
+		player_sprite.color = Color::BLUE;
+	}
+}
+
 pub fn remove_popup(
 	time: Res<Time>,
 	mut rmpopup: Query<(&mut DespawnTimer, &mut Visibility)>
@@ -842,6 +885,22 @@ pub fn remove_popup(
 		timer.tick(time.delta());
 		if timer.just_finished() {
 			vis_map.is_visible = false;
+		}
+	}
+}
+
+pub fn player_remove_attack(
+	time: Res<Time>,
+	mut attack_popup: Query<(&mut DespawnTimer, &mut Visibility), With<PlayerAttack>>,
+	mut player: Query<&mut Actions, With<Player>>,
+) {
+	let mut player_actions = player.single_mut();
+
+	for (mut timer, mut vis_map) in attack_popup.iter_mut() {
+		timer.tick(time.delta());
+		if timer.just_finished() {
+			vis_map.is_visible = false;
+			player_actions.attacking = false;
 		}
 	}
 }
