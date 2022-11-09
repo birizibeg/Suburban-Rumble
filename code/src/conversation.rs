@@ -24,6 +24,28 @@ pub struct EnemyDialogue;
 #[derive(Component)]
 pub struct Button;
 
+// stats struct to track tolerance for enemies
+#[derive(Component)]
+pub struct Tolerance {
+	tolerance: i8,
+}
+impl Tolerance {
+	fn new() -> Self {
+		Self { tolerance: 100 }	// start every entity at 100 health
+	}
+}
+
+const NICE_RESPONSES: [&'static str;6] = ["Thank you!", "I really appreciate that!",
+"You're such a good neighbor!", "You're a life saver", "Thanks! I'll see you later.", "Have a good day!"];
+
+const MEAN_RESPONSES: [&'static str;6] = ["Why would you say that to me?", "You're a crazy person!!",
+"I will literally call the police.", "Do you want to fight?!?!???!", "You're the worst neighbor EVER!", "You don't want to take it there!"];
+
+const NICE_GREETINGS: [&'static str;6] = ["Hello!", "How are you?", "I hope your day is going good so far!", 
+"How is your day going?", "Long time, no see! How are you?", "How's it going?"];
+
+const MEAN_GREETINGS: [&'static str;6] = ["What is WRONG with you?", "Don't smile at me! You KNOW what you did.", "I can not stand you!", 
+"You're actually the worst neighbor ever!", "Why do you act like this?", "You're ruining my day!!"];
 struct Word(String, i8);
 
 // 0 - start (enemy prompt, wait for player prompt)
@@ -36,10 +58,7 @@ const START_TURN: i32 = 0;
 static mut CUR_TURN: i32 = 0;
 static mut WORDS: Vec<Word> = Vec::new();
 static mut TOLERANCE: i8 = 0;
-
-// TODO: Update With AI generated Response
-const ENEMY_RESPONSES: [&'static str;6] = ["Enemy Response - 0", "Please?",
-"Enemy Response - 2", "Enemy Response - 3", "Enemy Response - 4 (END OF CONV PHASE)", "Out of responses"];
+static mut PLAYER_SENT: bool = true;
 
 // Spawn all entities to be used in the conversation part of the game
 pub fn setup_conversation(
@@ -91,7 +110,8 @@ pub fn setup_conversation(
             ..default()
         },
 		..default()
-	}).insert(Enemy);
+	}).insert(Enemy)
+    .insert(Tolerance::new());
 
 	let box_size = Vec2::new(700.0, 200.0);
     let box_position = Vec2::new(-45.0, -250.0);
@@ -212,8 +232,12 @@ pub fn handle_player_response(
                 println!("OUT OF RESPONSES: CONV PHASE OVER");
                 loss_writer.send(ConvLossEvent());
             }
-
-            let enemy_resp = ENEMY_RESPONSES[CUR_TURN as usize];
+            let enemy_resp: &str;
+            if PLAYER_SENT {
+                enemy_resp = NICE_RESPONSES[CUR_TURN as usize];
+            } else {
+                enemy_resp = MEAN_RESPONSES[CUR_TURN as usize];
+            }
             println!("Current Turn: {}", CUR_TURN);
             enem_dlg.sections[0].value = enemy_resp.to_string();
         }
@@ -228,9 +252,12 @@ pub fn handle_player_response(
 pub fn process_input(
     mut ev_reader: EventReader<ConvInputEvent>,
     mut loss_writer: EventWriter<ConvLossEvent>,
-    mut win_writer: EventWriter<ConvWinEvent>
+    mut win_writer: EventWriter<ConvWinEvent>,
+    mut tolerances: Query<&mut Tolerance, With<Enemy>>
 ) {
     let mut score = 0;
+    let mut tol = tolerances.single_mut();
+
     for input in ev_reader.iter() {
         let mut string = input.0.to_string();
         string.make_ascii_lowercase();
@@ -248,13 +275,15 @@ pub fn process_input(
         
         println!("Score: {}", score);
         unsafe {
-           TOLERANCE = TOLERANCE + score;
-            if TOLERANCE <= 0 {
+           tol.tolerance = tol.tolerance + score;
+            if tol.tolerance <= 0 {
                 loss_writer.send(ConvLossEvent());
             } else if score < 0 {
+                PLAYER_SENT = false;
                 println!("Negative input, but not below tolerance");
-                println!("Tolerance left: {}", TOLERANCE);
+                println!("Tolerance left: {}", tol.tolerance);
             } else {
+                PLAYER_SENT = true;
                 println!("Neutral/positive input -- trigger WIN");
                 win_writer.send(ConvWinEvent());
             } 
