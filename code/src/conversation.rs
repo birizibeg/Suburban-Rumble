@@ -1,5 +1,3 @@
-use std::string;
-
 use bevy::{
 	prelude::*,
 	text::Text2dBounds,
@@ -26,6 +24,30 @@ pub struct EnemyDialogue;
 #[derive(Component)]
 pub struct Button;
 
+// stats struct to track tolerance for enemies
+#[derive(Component)]
+pub struct Tolerance {
+	tolerance: i8,
+}
+impl Tolerance {
+	fn new() -> Self {
+		Self { tolerance: 100 }	// start every entity at 100 health
+	}
+}
+
+const NICE_RESPONSES: [&'static str;6] = ["Thank you!", "I really appreciate that!",
+"You're such a good neighbor!", "You're a life saver", "Thanks! I'll see you later.", "Have a good day!"];
+
+const MEAN_RESPONSES: [&'static str;6] = ["Why would you say that to me?", "You're a crazy person!!",
+"I will literally call the police.", "Do you want to fight?!?!???!", "You're the worst neighbor EVER!", "You don't want to take it there!"];
+
+const NICE_GREETINGS: [&'static str;6] = ["Hello!", "How are you?", "I hope your day is going good so far!", 
+"How is your day going?", "Long time, no see! How are you?", "How's it going?"];
+
+const MEAN_GREETINGS: [&'static str;6] = ["What is WRONG with you?", "Don't smile at me! You KNOW what you did.", "I can not stand you!", 
+"You're actually the worst neighbor ever!", "Why do you act like this?", "You're ruining my day!!"];
+struct Word(String, i8);
+
 // 0 - start (enemy prompt, wait for player prompt)
 // 1 - after player first response, fetch ai response
 // 2 - after player second response, fetch ai response
@@ -34,13 +56,9 @@ pub struct Button;
 const MAX_TURNS: i32 = 4;
 const START_TURN: i32 = 0;
 static mut CUR_TURN: i32 = 0;
-
-
-// TODO: Update With AI generated Response
-const ENEMY_RESPONSES: [&'static str;6] = ["Enemy Response - 0", "Enemy Response - 1",
-"Enemy Response - 2", "Enemy Response - 3", "Enemy Response - 4 (END OF CONV PHASE)", "Out of responses"];
-
-struct Word(String, i8);
+static mut WORDS: Vec<Word> = Vec::new();
+static mut TOLERANCE: i8 = 0;
+static mut PLAYER_SENT: bool = true;
 
 // Spawn all entities to be used in the conversation part of the game
 pub fn setup_conversation(
@@ -51,6 +69,14 @@ pub fn setup_conversation(
     unsafe {
         CUR_TURN = START_TURN;
         println!("Current Turn: {}", CUR_TURN);
+        WORDS.push(Word("awesome".to_string(), 10));
+        WORDS.push(Word("very".to_string(), 10));
+        WORDS.push(Word("yes".to_string(), 10));
+        WORDS.push(Word("yeah".to_string(), 10));
+        WORDS.push(Word("no".to_string(), -10));
+        WORDS.push(Word("not".to_string(), -10));
+        WORDS.push(Word("stinky".to_string(), -10));
+        TOLERANCE = 30;
     }
     clear_color.0 = Color::DARK_GREEN;
     let user_text_style = TextStyle {
@@ -63,7 +89,7 @@ pub fn setup_conversation(
         font_size: 60.0,
         color: Color::BLACK
     };
-
+    
     commands.spawn_bundle(SpriteBundle {
 		texture: asset_server.load("hero.png"),
 		transform: Transform::from_xyz(-500., -225., 2.),
@@ -84,7 +110,8 @@ pub fn setup_conversation(
             ..default()
         },
 		..default()
-	}).insert(Enemy);
+	}).insert(Enemy)
+    .insert(Tolerance::new());
 
 	let box_size = Vec2::new(700.0, 200.0);
     let box_position = Vec2::new(-45.0, -250.0);
@@ -155,6 +182,9 @@ pub fn clear_conversation(
 	let enemy_eid = enemy.single_mut();
     commands.entity(hero_eid).despawn();
 	commands.entity(enemy_eid).despawn();
+    unsafe{
+        WORDS = Vec::new();
+    }
 }
 
 // This takes the user's input and then prints every character onto the window using a text box
@@ -202,8 +232,12 @@ pub fn handle_player_response(
                 println!("OUT OF RESPONSES: CONV PHASE OVER");
                 loss_writer.send(ConvLossEvent());
             }
-
-            let enemy_resp = ENEMY_RESPONSES[CUR_TURN as usize];
+            let enemy_resp: &str;
+            if PLAYER_SENT {
+                enemy_resp = NICE_RESPONSES[CUR_TURN as usize];
+            } else {
+                enemy_resp = MEAN_RESPONSES[CUR_TURN as usize];
+            }
             println!("Current Turn: {}", CUR_TURN);
             enem_dlg.sections[0].value = enemy_resp.to_string();
         }
@@ -218,36 +252,41 @@ pub fn handle_player_response(
 pub fn process_input(
     mut ev_reader: EventReader<ConvInputEvent>,
     mut loss_writer: EventWriter<ConvLossEvent>,
-    mut win_writer: EventWriter<ConvWinEvent>
+    mut win_writer: EventWriter<ConvWinEvent>,
+    mut tolerances: Query<&mut Tolerance, With<Enemy>>
 ) {
-    let mut words = Vec::new();
     let mut score = 0;
-    words.push(Word("awesome".to_string(), 10));
-    words.push(Word("very".to_string(), 10));
-    words.push(Word("yes".to_string(), 10));
-    words.push(Word("yeah".to_string(), 10));
-    words.push(Word("no".to_string(), -10));
-    words.push(Word("not".to_string(), -10));
+    let mut tol = tolerances.single_mut();
+
     for input in ev_reader.iter() {
         let mut string = input.0.to_string();
         string.make_ascii_lowercase();
         string = string.trim_end().to_string();
-        for word in string.split_whitespace(){
-            for check in words.iter() {
-                if &check.0 == word {
-                    println!("FOUND A WORD");
-                    score = score + &check.1;
+        unsafe {
+            for word in string.split_whitespace(){
+                for check in WORDS.iter() {
+                    if &check.0 == word {
+                        println!("FOUND A WORD");
+                        score = score + &check.1;
+                    }
                 }
-            }
+            }    
         }
+        
         println!("Score: {}", score);
-
-        /*
-        if score < 0 {
-            loss_writer.send(ConvLossEvent());
-        } else {
-            win_writer.send(ConvWinEvent());
+        unsafe {
+           tol.tolerance = tol.tolerance + score;
+            if tol.tolerance <= 0 {
+                loss_writer.send(ConvLossEvent());
+            } else if score < 0 {
+                PLAYER_SENT = false;
+                println!("Negative input, but not below tolerance");
+                println!("Tolerance left: {}", tol.tolerance);
+            } else {
+                PLAYER_SENT = true;
+                println!("Neutral/positive input -- trigger WIN");
+                win_writer.send(ConvWinEvent());
+            } 
         }
-        */
     }
 }
