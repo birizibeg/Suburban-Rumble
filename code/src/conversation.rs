@@ -9,8 +9,8 @@ use super::ConvWinEvent;
 #[derive(Component)]
 pub struct Hero;
 
-#[derive(Component)]
-pub struct Enemy;
+//#[derive(Component)]
+//pub struct Enemy;
 
 #[derive(Component)]
 pub struct DialogueBox;
@@ -26,7 +26,17 @@ pub struct Button;
 
 // stats struct to track tolerance for enemies
 #[derive(Component)]
-pub struct Tolerance {
+pub struct Enemy{
+	startTolerance: i8,
+    name: String,
+    age: i8,
+    job: String,
+    description: String,
+
+}
+
+#[derive(Component)]
+pub struct Tolerance{
 	tolerance: i8,
 }
 impl Tolerance {
@@ -78,6 +88,7 @@ pub fn setup_conversation(
         WORDS.push(Word("stinky".to_string(), -10));
         TOLERANCE = 30;
     }
+
     clear_color.0 = Color::DARK_GREEN;
     let user_text_style = TextStyle {
 		font: asset_server.load("Fonts/SourceSansPro-Regular.ttf"),
@@ -110,7 +121,7 @@ pub fn setup_conversation(
             ..default()
         },
 		..default()
-	}).insert(Enemy)
+	}).insert(Enemy{startTolerance: 100, name: String::from("Catherine Robinson"), age: 27, job: String::from("Teacher"), description: String::from("nice")})
     .insert(Tolerance::new());
 
 	let box_size = Vec2::new(700.0, 200.0);
@@ -253,7 +264,8 @@ pub fn process_input(
     mut ev_reader: EventReader<ConvInputEvent>,
     mut loss_writer: EventWriter<ConvLossEvent>,
     mut win_writer: EventWriter<ConvWinEvent>,
-    mut tolerances: Query<&mut Tolerance, With<Enemy>>
+    mut tolerances: Query<&mut Tolerance, With<Enemy>>,
+    //mut tolerances: Query<Enemy>>,
 ) {
     let mut score = 0;
     let mut tol = tolerances.single_mut();
