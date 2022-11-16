@@ -5,12 +5,14 @@ use bevy::{
 use super::ConvInputEvent;
 use super::ConvLossEvent;
 use super::ConvWinEvent;
+extern crate rust_stemmers;
+use rust_stemmers::{Algorithm, Stemmer};
 
 #[derive(Component)]
 pub struct Hero;
 
-#[derive(Component)]
-pub struct Enemy;
+//#[derive(Component)]
+//pub struct Enemy;
 
 #[derive(Component)]
 pub struct DialogueBox;
@@ -26,7 +28,17 @@ pub struct Button;
 
 // stats struct to track tolerance for enemies
 #[derive(Component)]
-pub struct Tolerance {
+pub struct Enemy{
+	startTolerance: i8,
+    name: String,
+    age: i8,
+    job: String,
+    description: String,
+
+}
+
+#[derive(Component)]
+pub struct Tolerance{
 	tolerance: i8,
 }
 impl Tolerance {
@@ -57,7 +69,6 @@ const MAX_TURNS: i32 = 4;
 const START_TURN: i32 = 0;
 static mut CUR_TURN: i32 = 0;
 static mut WORDS: Vec<Word> = Vec::new();
-static mut TOLERANCE: i8 = 0;
 static mut PLAYER_SENT: bool = true;
 
 // Spawn all entities to be used in the conversation part of the game
@@ -76,8 +87,8 @@ pub fn setup_conversation(
         WORDS.push(Word("no".to_string(), -10));
         WORDS.push(Word("not".to_string(), -10));
         WORDS.push(Word("stinky".to_string(), -10));
-        TOLERANCE = 30;
     }
+
     clear_color.0 = Color::DARK_GREEN;
     let user_text_style = TextStyle {
 		font: asset_server.load("Fonts/SourceSansPro-Regular.ttf"),
@@ -110,7 +121,7 @@ pub fn setup_conversation(
             ..default()
         },
 		..default()
-	}).insert(Enemy)
+	}).insert(Enemy{startTolerance: 100, name: String::from("Catherine Robinson"), age: 27, job: String::from("Teacher"), description: String::from("nice")})
     .insert(Tolerance::new());
 
 	let box_size = Vec2::new(700.0, 200.0);
@@ -226,19 +237,20 @@ pub fn handle_player_response(
         unsafe {
             if CUR_TURN <= MAX_TURNS {
                 CUR_TURN = CUR_TURN + 1;
-                println!("Current Turn: {}", CUR_TURN);
+                //println!("Current Turn: {}", CUR_TURN);
             }
             else{ // TODO: CASE REACHED FINAL TURN -- NEEDS TO BE HANDLED
-                println!("OUT OF RESPONSES: CONV PHASE OVER");
+                //println!("OUT OF RESPONSES: CONV PHASE OVER");
                 loss_writer.send(ConvLossEvent());
             }
             let enemy_resp: &str;
+            //println!("player sentiment good: {}", PLAYER_SENT);
             if PLAYER_SENT {
                 enemy_resp = NICE_RESPONSES[CUR_TURN as usize];
             } else {
                 enemy_resp = MEAN_RESPONSES[CUR_TURN as usize];
             }
-            println!("Current Turn: {}", CUR_TURN);
+            //println!("Current Turn: {}", CUR_TURN);
             enem_dlg.sections[0].value = enemy_resp.to_string();
         }
         
@@ -253,38 +265,49 @@ pub fn process_input(
     mut ev_reader: EventReader<ConvInputEvent>,
     mut loss_writer: EventWriter<ConvLossEvent>,
     mut win_writer: EventWriter<ConvWinEvent>,
-    mut tolerances: Query<&mut Tolerance, With<Enemy>>
+    mut tolerances: Query<&mut Tolerance, With<Enemy>>,
+    //mut tolerances: Query<Enemy>>,
 ) {
     let mut score = 0;
     let mut tol = tolerances.single_mut();
+    let stemmer = Stemmer::create(Algorithm::English);
+    let mut simple_sentence: Vec<String> = Vec::new();
 
     for input in ev_reader.iter() {
+        // Get the input and do some string manipulation to make it easier to parse
         let mut string = input.0.to_string();
         string.make_ascii_lowercase();
         string = string.trim_end().to_string();
         unsafe {
-            for word in string.split_whitespace(){
+            // Create a simple sentence by iterating through the words and pushing them to a vec
+            for words in string.split_whitespace(){
+                // If the word is not an article,
+                let word = words.trim_end_matches(","); // Trim off any potential commas
+                if word.to_string() != "a" && word.to_string() != "an" && word.to_string() != "the" {
+                    let finished_word = &stemmer.stem(word).into_owned(); // Find the stem
+                    simple_sentence.push(finished_word.to_string()); // Then add it to the simplified sentence
+                }
+            }
+            // Once the sentence is simplified, search for the words
+            for word in &simple_sentence {
+                println!("Checking dictionary for {}", word);
+                // Iterate through our dictionary and add the score if the word is found
                 for check in WORDS.iter() {
                     if &check.0 == word {
-                        println!("FOUND A WORD");
                         score = score + &check.1;
                     }
                 }
-            }    
+            } 
         }
         
-        println!("Score: {}", score);
         unsafe {
            tol.tolerance = tol.tolerance + score;
             if tol.tolerance <= 0 {
                 loss_writer.send(ConvLossEvent());
             } else if score < 0 {
                 PLAYER_SENT = false;
-                println!("Negative input, but not below tolerance");
-                println!("Tolerance left: {}", tol.tolerance);
             } else {
                 PLAYER_SENT = true;
-                println!("Neutral/positive input -- trigger WIN");
                 win_writer.send(ConvWinEvent());
             } 
         }

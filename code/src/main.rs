@@ -267,6 +267,7 @@ fn start_button(
 }*/
 
 
+
 fn setup_credits(mut clear_color: ResMut<ClearColor>, mut commands: Commands, asset_server: Res<AssetServer>) {
 	clear_color.0 = Color::BLACK;
 
