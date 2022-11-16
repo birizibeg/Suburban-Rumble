@@ -160,7 +160,7 @@ impl From<StateMachine<Move>> for StateMachine<Stand> {
 }
 
 pub fn setup_fight(mut commands: Commands, mut clear_color: ResMut<ClearColor>) {
-    clear_color.0 = Color::DARK_GRAY;	// subject to change
+    clear_color.0 = Color::NONE;	// subject to change
 
 	// spawn the player sprite
     commands.spawn_bundle(SpriteBundle {
