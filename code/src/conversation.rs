@@ -11,8 +11,6 @@ use rust_stemmers::{Algorithm, Stemmer};
 #[derive(Component)]
 pub struct Hero;
 
-#[derive(Component)]
-pub struct Background;
 //#[derive(Component)]
 //pub struct Enemy;
 
@@ -91,26 +89,21 @@ pub fn setup_conversation(
         WORDS.push(Word("stinky".to_string(), -10));
     }
 
-    clear_color.0 = Color::NONE;
+    clear_color.0 = Color::DARK_GREEN;
     let user_text_style = TextStyle {
-		font: asset_server.load("Fonts/Minecraft.ttf"),
+		font: asset_server.load("Fonts/SourceSansPro-Regular.ttf"),
         font_size: 40.0,
         color: Color::WHITE
     };
     let enemy_text_style = TextStyle {
-		font: asset_server.load("Fonts/Minecraft.ttf"),
-        font_size: 40.0,
+		font: asset_server.load("Fonts/SourceSansPro-Regular.ttf"),
+        font_size: 60.0,
         color: Color::BLACK
     };
-
-    commands .spawn_bundle(SpriteBundle { 
-        texture: asset_server.load("conversationscreen.png"), 
-        ..default() 
-    }).insert(Background);
     
     commands.spawn_bundle(SpriteBundle {
 		texture: asset_server.load("hero.png"),
-		transform: Transform::from_xyz(-500., -225., 1.),
+		transform: Transform::from_xyz(-500., -225., 2.),
 		sprite: Sprite {
             color: Color::WHITE,
             custom_size: Some(Vec2::new(200., 200.)),
@@ -121,10 +114,10 @@ pub fn setup_conversation(
 
 	commands.spawn_bundle(SpriteBundle {
 		texture: asset_server.load("CathyRobinson.png"),
-		transform: Transform::from_xyz(0., 0., 2.),
+		transform: Transform::from_xyz(500., 200., 2.),
 		sprite: Sprite {
-            //color: Color::WHITE,
-            //custom_size: Some(Vec2::new(200., 200.)),
+            color: Color::WHITE,
+            custom_size: Some(Vec2::new(200., 200.)),
             ..default()
         },
 		..default()
@@ -137,11 +130,11 @@ pub fn setup_conversation(
 
     commands.spawn_bundle(SpriteBundle {
         sprite: Sprite {
-            color: Color::Rgba{red: 0.0, green: 0.0, blue: 0.0, alpha:0.75},
+            color: Color::Rgba{red: 0.0, green: 0.0, blue: 0.0, alpha: 0.5},
             custom_size: Some(Vec2::new(box_size.x, box_size.y)),
             ..default()
         },
-        transform: Transform::from_xyz(0., 0., 2.).with_translation(box_position.extend(0.5)).with_scale(Vec3::splat(1.1)),
+        transform: Transform::from_translation(box_position.extend(0.5)),
         ..default()
     }).insert(DialogueBox);
 
@@ -151,7 +144,7 @@ pub fn setup_conversation(
             custom_size: Some(Vec2::new(box_size.x, box_size.y)),
             ..default()
         },
-        transform: Transform::from_translation(box_position_two.extend(0.5)).with_scale(Vec3::splat(1.25)),
+        transform: Transform::from_translation(box_position_two.extend(0.0)),
         ..default()
     }).insert(DialogueBox);
 
@@ -177,7 +170,7 @@ pub fn setup_conversation(
         transform: Transform::from_xyz(
             box_position.x - box_size.x / 2.0,
             box_position.y + box_size.y / 2.0,
-            2.0,
+            1.0,
         ),
         ..default()
     }).insert(DialogueBox)
@@ -190,7 +183,6 @@ pub fn clear_conversation(
     mut commands: Commands,
     mut hero: Query<Entity, With<Hero>>,
 	mut enemy: Query<Entity, With<Enemy>>,
-    mut background: Query<Entity, With<Background>>,
     dialogue: Query<Entity, With<DialogueBox>>,
 
 ) {
@@ -199,10 +191,8 @@ pub fn clear_conversation(
     }
     let hero_eid = hero.single_mut();
 	let enemy_eid = enemy.single_mut();
-    let background_eid = background.single_mut();
     commands.entity(hero_eid).despawn();
 	commands.entity(enemy_eid).despawn();
-    commands.entity(background_eid).despawn();
     unsafe{
         WORDS = Vec::new();
     }
