@@ -4,6 +4,7 @@ use bevy::{
 use bevy::sprite::collide_aabb::collide;
 use bevy::sprite::collide_aabb::Collision;
 use super::CollideEvent;
+use super::FightWinEvent;
 
 const PLAYER_W: f32 = 64.;
 const PLAYER_H: f32 = 128.;
@@ -473,6 +474,7 @@ pub fn collision_handle(
 	mut commands: Commands,
 	enemy_healthbar_en: Query<Entity, (With<EnemyName>,With<HealthBarTop>)>,
 	mut player_receive: EventReader<CollideEvent>,
+	mut win_state: EventWriter<FightWinEvent>,
 	mut player: Query<&mut Transform,With<Player>>,
 	mut enemy: Query<(&mut Transform, &mut Velocity, &mut Stats), (With<Enemy>, Without<Player>)>
 ){
@@ -536,7 +538,8 @@ pub fn collision_handle(
 				if enemy_stats.health==0.{
 					// For now this just resets the enemy health
 					// In the future we can add code to transition to the next fight or conversation
-					enemy_stats.health=110.;
+					enemy_stats.health=0.;
+					win_state.send(FightWinEvent());
 				}
 			  }else if p.1.contains("punchright"){
 				// this handles punch collisions 
@@ -571,7 +574,8 @@ pub fn collision_handle(
 				if enemy_stats.health==0.{
 					// For now this just resets the enemy health
 					// In the future we can add code to transition to the next fight or conversation
-					enemy_stats.health=110.;
+					enemy_stats.health=0.;
+					win_state.send(FightWinEvent());
 				}
 			  }else if p.1.contains("kickleft"){
 				enemy_velocity.velocity = enemy_velocity.velocity + Vec2::new(
@@ -603,7 +607,8 @@ pub fn collision_handle(
 					.insert(HealthBarTop)
 					.insert(EnemyName(String::from("dummy")));
 					if enemy_stats.health==0.{
-						enemy_stats.health=120.;
+						enemy_stats.health=0.;
+						win_state.send(FightWinEvent());
 					}
 			  } else if p.1.contains("kickright"){
 				enemy_velocity.velocity = enemy_velocity.velocity + Vec2::new(
@@ -635,7 +640,8 @@ pub fn collision_handle(
 					.insert(HealthBarTop)
 					.insert(EnemyName(String::from("dummy")));
 					if enemy_stats.health==0.{
-						enemy_stats.health=120.;
+						enemy_stats.health=0.;
+						win_state.send(FightWinEvent());
 					}
 			  }
 			}

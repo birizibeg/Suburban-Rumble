@@ -26,6 +26,8 @@ struct DespawnTimer(Timer);
 pub struct ConvInputEvent(String);
 pub struct ConvLossEvent();
 pub struct ConvWinEvent();
+pub struct FightWinEvent();
+pub struct FightLossEvent();
 
 
 pub struct CollideEvent(bool,String);
@@ -46,6 +48,8 @@ fn main() {
 		.add_event::<ConvLossEvent>()
 		.add_event::<ConvWinEvent>()
 		.add_event::<CollideEvent>()
+		.add_event::<FightWinEvent>()
+		.add_event::<FightLossEvent>()
 		.add_plugins(DefaultPlugins)
 		.add_startup_system(setup)
 		.add_system_set(
@@ -112,6 +116,7 @@ fn main() {
 		)
 		.add_system(change_gamestate)
 		.add_system(conv_over)
+		.add_system(fight_over)
 		.run();
 }
 
@@ -430,4 +435,23 @@ fn change_gamestate(
 				Err(_) => (),
 			}
 		}
+}
+
+fn fight_over(
+	mut game_state: ResMut<State<GameState>>,
+	mut loss_reader: EventReader<FightLossEvent>,
+	mut win_reader: EventReader<FightWinEvent>
+) {
+	for _ev in loss_reader.iter() {
+		match game_state.set(GameState::Credits){
+			Ok(_) => info!("GameState: Credits"),
+			Err(_) => (),
+		}
+	}
+	for _ev in win_reader.iter() {
+		match game_state.set(GameState::Conversation){
+			Ok(_) => info!("GameState: Conversation"),
+			Err(_) => (),
+		}
+	}
 }
