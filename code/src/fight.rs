@@ -474,6 +474,7 @@ pub fn collision_handle(
 	enemy_healthbar_en: Query<Entity, (With<EnemyName>,With<HealthBarTop>)>,
 	mut player_receive: EventReader<CollideEvent>,
 	mut player: Query<&mut Transform,With<Player>>,
+	mut win_state: EventWriter<FightWinEvent>,
 	mut enemy: Query<(&mut Transform, &mut Velocity, &mut Stats), (With<Enemy>, Without<Player>)>
 ){
 	let mut player_transform = player.single_mut();
@@ -536,7 +537,8 @@ pub fn collision_handle(
 				if enemy_stats.health==0.{
 					// For now this just resets the enemy health
 					// In the future we can add code to transition to the next fight or conversation
-					enemy_stats.health=110.;
+					enemy_stats.health=0.;
+					win_state.send(FightWinEvent());
 				}
 			  }else if p.1.contains("punchright"){
 				// this handles punch collisions 
@@ -571,7 +573,8 @@ pub fn collision_handle(
 				if enemy_stats.health==0.{
 					// For now this just resets the enemy health
 					// In the future we can add code to transition to the next fight or conversation
-					enemy_stats.health=110.;
+					enemy_stats.health=0.;
+					win_state.send(FightWinEvent());
 				}
 			  }else if p.1.contains("kickleft"){
 				enemy_velocity.velocity = enemy_velocity.velocity + Vec2::new(
@@ -603,7 +606,8 @@ pub fn collision_handle(
 					.insert(HealthBarTop)
 					.insert(EnemyName(String::from("dummy")));
 					if enemy_stats.health==0.{
-						enemy_stats.health=120.;
+						enemy_stats.health=0.;
+					win_state.send(FightWinEvent());
 					}
 			  } else if p.1.contains("kickright"){
 				enemy_velocity.velocity = enemy_velocity.velocity + Vec2::new(
@@ -635,7 +639,8 @@ pub fn collision_handle(
 					.insert(HealthBarTop)
 					.insert(EnemyName(String::from("dummy")));
 					if enemy_stats.health==0.{
-						enemy_stats.health=120.;
+						enemy_stats.health=0.;
+					win_state.send(FightWinEvent());
 					}
 			  }
 			}
