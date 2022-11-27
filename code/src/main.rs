@@ -21,6 +21,10 @@ struct PopupTimer(Timer);
 pub struct AnimationTimer(Timer);
 #[derive(Component)]
 pub struct IsStart();
+#[derive(Component)]
+pub struct CreditsButton();
+#[derive(Component)]
+pub struct StartButton();
 #[derive(Component, Deref, DerefMut)]
 struct DespawnTimer(Timer);
 pub struct ConvInputEvent(String);
@@ -82,7 +86,7 @@ fn main() {
 			SystemSet::on_enter(GameState::Start)
 				.with_system(start_button)
 		)
-		/*.add_system(button_system)*/
+		.add_system(button_system)
 		.add_system_set(
 			SystemSet::on_exit(GameState::Start)
 				.with_system(clear_start)
@@ -220,14 +224,16 @@ fn start_button(
 		transform: Transform::from_xyz(0., 0., 1.1).with_scale(Vec3::splat(1.5)),
 		..default()
 	})
-	.insert(IsStart());
+	.insert(IsStart())
+	.insert(StartButton());
 
 	commands.spawn_bundle(SpriteBundle {
 		texture: asset_server.load("buttons/creditsbutton.png"),
 		transform: Transform::from_xyz(0., -90., 1.1).with_scale(Vec3::splat(1.5)),
 		..default()
 	})
-	.insert(IsStart());
+	.insert(IsStart())
+	.insert(CreditsButton());
 
 	commands.spawn_bundle(SpriteBundle {
 		texture: asset_server.load("buttons/startpress.png"),
@@ -246,27 +252,53 @@ fn start_button(
 }
 
 
-/*fn button_system(
-	mut interaction_query: Query<(
-		&Interaction, &mut Transform), 
-		(Changed<Interaction>, With<HasInteraction>)>
+fn button_system(
+	mut game_state: ResMut<State<GameState>>,
+	windows: Res<Windows>,
+	buttons: Res<Input<MouseButton>>,
+	mut start_query: Query<&Transform, With<StartButton>>,	
+	mut credits_query: Query<&Transform, With<CreditsButton>>, 
 ){
-	for (interaction) in &mut interaction_query {
-        println!("do we ever get heeeere?");
-		match *interaction {
-            Interaction::Clicked => {
-                //transform.translation.z = -1.;
-            }
-            Interaction::Hovered => {
-				//transform.translation.z = -1.;
-            }
-            Interaction::None => {
-            }
-        }
-    }
-}*/
+	let window = windows.get_primary().unwrap();
+	
+	let cursor_position = if let Some(cursor_position) = windows
+        .get_primary()
+        .and_then(|window| window.cursor_position())
+    {
+        cursor_position
+    } else {
+        return;
+    };
 
+	let mouse_clicked = buttons.just_pressed(MouseButton::Left);
+	
+	if mouse_clicked{
+		println!("{:?}", Window::cursor_position(window));
+		if ((425. > cursor_position.y) & 
+			(375. < cursor_position.y) &
+			(725. > cursor_position.x) &
+			(550. < cursor_position.x)
+		){
 
+			match game_state.set(GameState::Conversation) {
+					Ok(_) => info!("GameState: Conversation"),
+					Err(_) => (),
+				}
+		}
+		else if ((340. > cursor_position.y) & 
+			(280. < cursor_position.y) &
+			(740. > cursor_position.x) &
+			(535. < cursor_position.x)
+		){		match game_state.set(GameState::Credits) {
+					Ok(_) => info!("GameState: Credits"),
+					Err(_) => (),
+				}
+		}
+		else{
+
+		}
+	}
+}
 
 fn setup_credits(mut clear_color: ResMut<ClearColor>, mut commands: Commands, asset_server: Res<AssetServer>) {
 	clear_color.0 = Color::BLACK;
