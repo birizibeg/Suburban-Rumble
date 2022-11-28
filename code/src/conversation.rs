@@ -31,22 +31,11 @@ pub struct Button;
 // stats struct to track tolerance for enemies
 #[derive(Component)]
 pub struct Enemy{
-	startTolerance: i8,
+	start_tolerance: i8,
     name: String,
     age: i8,
     job: String,
     description: String,
-
-}
-
-#[derive(Component)]
-pub struct Tolerance{
-	tolerance: i8,
-}
-impl Tolerance {
-	fn new() -> Self {
-		Self { tolerance: 100 }	// start every entity at 100 health
-	}
 }
 
 const NICE_RESPONSES: [&'static str;6] = ["Thank you!", "I really appreciate that!",
@@ -71,7 +60,6 @@ const MAX_TURNS: i32 = 4;
 const START_TURN: i32 = 0;
 static mut CUR_TURN: i32 = 0;
 static mut WORDS: Vec<Word> = Vec::new();
-static mut PLAYER_SENT: bool = true;
 
 // Spawn all entities to be used in the conversation part of the game
 pub fn setup_conversation(
@@ -82,13 +70,13 @@ pub fn setup_conversation(
     unsafe {
         CUR_TURN = START_TURN;
         println!("Current Turn: {}", CUR_TURN);
-        WORDS.push(Word("awesome".to_string(), 10));
-        WORDS.push(Word("very".to_string(), 10));
+        WORDS.push(Word("awesom".to_string(), 10));
+        WORDS.push(Word("good".to_string(), 10));
+        WORDS.push(Word("pretty".to_string(), 10));
         WORDS.push(Word("yes".to_string(), 10));
         WORDS.push(Word("yeah".to_string(), 10));
         WORDS.push(Word("no".to_string(), -10));
-        WORDS.push(Word("not".to_string(), -10));
-        WORDS.push(Word("stinky".to_string(), -10));
+        WORDS.push(Word("stinki".to_string(), -10));
     }
 
     clear_color.0 = Color::NONE;
@@ -128,8 +116,7 @@ pub fn setup_conversation(
             ..default()
         },
 		..default()
-	}).insert(Enemy{startTolerance: 100, name: String::from("Catherine Robinson"), age: 27, job: String::from("Teacher"), description: String::from("nice")})
-    .insert(Tolerance::new());
+	}).insert(Enemy{start_tolerance: 100, name: String::from("Catherine Robinson"), age: 27, job: String::from("Teacher"), description: String::from("nice")});
 
 	let box_size = Vec2::new(700.0, 200.0);
     let box_position = Vec2::new(-45.0, -250.0);
@@ -170,7 +157,7 @@ pub fn setup_conversation(
     .insert(EnemyDialogue);
     
     commands.spawn_bundle(Text2dBundle {
-        text: Text::from_section("Press enter to start", user_text_style),
+        text: Text::from_section("Type your response", user_text_style),
         text_2d_bounds: Text2dBounds {
             size: box_size,
         },
@@ -235,39 +222,7 @@ pub fn text_input(
 		}
 	}
 }
-// update turn, and returns enemy response to user, handles if final turn
-pub fn handle_player_response(
-    mut ev_reader: EventReader<ConvInputEvent>,
-    mut enemy_dialogue: Query<&mut Text, With<EnemyDialogue>>,
-    mut loss_writer: EventWriter<ConvLossEvent>
-)
-{
-    let mut enem_dlg = enemy_dialogue.single_mut();
-    for _input in ev_reader.iter() {
-        unsafe {
-            if CUR_TURN <= MAX_TURNS {
-                CUR_TURN = CUR_TURN + 1;
-                //println!("Current Turn: {}", CUR_TURN);
-            }
-            else{ // TODO: CASE REACHED FINAL TURN -- NEEDS TO BE HANDLED
-                //println!("OUT OF RESPONSES: CONV PHASE OVER");
-                loss_writer.send(ConvLossEvent());
-            }
-            let enemy_resp: &str;
-            //println!("player sentiment good: {}", PLAYER_SENT);
-            if PLAYER_SENT {
-                enemy_resp = NICE_RESPONSES[CUR_TURN as usize];
-            } else {
-                enemy_resp = MEAN_RESPONSES[CUR_TURN as usize];
-            }
-            //println!("Current Turn: {}", CUR_TURN);
-            enem_dlg.sections[0].value = enemy_resp.to_string();
-        }
-        
-        
-    }
-   
-}
+
 // Processes the input that the user gives
 // For now, just a few key phrases are checked to be contained in the user's response
 // This will be where the AI part is implemented
@@ -275,13 +230,17 @@ pub fn process_input(
     mut ev_reader: EventReader<ConvInputEvent>,
     mut loss_writer: EventWriter<ConvLossEvent>,
     mut win_writer: EventWriter<ConvWinEvent>,
-    mut tolerances: Query<&mut Tolerance, With<Enemy>>,
+    mut enemy_dialogue: Query<&mut Text, With<EnemyDialogue>>,
+    mut enemy: Query<&mut Enemy>,
     //mut tolerances: Query<Enemy>>,
 ) {
     let mut score = 0;
-    let mut tol = tolerances.single_mut();
+    let mut multiplier = 1;
+    let mut enemy = enemy.single_mut();
     let stemmer = Stemmer::create(Algorithm::English);
     let mut simple_sentence: Vec<String> = Vec::new();
+    let mut enem_dlg = enemy_dialogue.single_mut();
+    let mut player_sent = true;
 
     for input in ev_reader.iter() {
         // Get the input and do some string manipulation to make it easier to parse
@@ -300,26 +259,53 @@ pub fn process_input(
             }
             // Once the sentence is simplified, search for the words
             for word in &simple_sentence {
-                println!("Checking dictionary for {}", word);
-                // Iterate through our dictionary and add the score if the word is found
-                for check in WORDS.iter() {
-                    if &check.0 == word {
-                        score = score + &check.1;
+                if word.to_string() == "not" {
+                    multiplier = multiplier * -1;
+                } else  if word.to_string() == "veri" || word.to_string() == "pretti" {
+                    multiplier = multiplier * 2;
+                } else {
+                    println!("Checking dictionary for {}", word);
+                    // Iterate through our dictionary and add the score if the word is found
+                    for check in WORDS.iter() {
+                        if &check.0 == word {
+                            score = score + &check.1 * multiplier;
+                            println!("Final score of sentence: {}", score);
+                            multiplier = 1;
+                        }
                     }
                 }
+                
             } 
         }
         
         unsafe {
-           tol.tolerance = tol.tolerance + score;
-            if tol.tolerance <= 0 {
+           enemy.start_tolerance = enemy.start_tolerance + score;
+            if enemy.start_tolerance <= 0 {
                 loss_writer.send(ConvLossEvent());
             } else if score < 0 {
-                PLAYER_SENT = false;
+                player_sent = false;
             } else {
-                PLAYER_SENT = true;
+                player_sent = true;
                 win_writer.send(ConvWinEvent());
             } 
+            
+            if CUR_TURN <= MAX_TURNS {
+                CUR_TURN = CUR_TURN + 1;
+                //println!("Current Turn: {}", CUR_TURN);
+            }
+            else{ // TODO: CASE REACHED FINAL TURN -- NEEDS TO BE HANDLED
+                //println!("OUT OF RESPONSES: CONV PHASE OVER");
+                loss_writer.send(ConvLossEvent());
+            }
+            let enemy_resp: &str;
+            //println!("player sentiment good: {}", PLAYER_SENT);
+            if player_sent {
+                enemy_resp = NICE_RESPONSES[CUR_TURN as usize];
+            } else {
+                enemy_resp = MEAN_RESPONSES[CUR_TURN as usize];
+            }
+            //println!("Current Turn: {}", CUR_TURN);
+            enem_dlg.sections[0].value = enemy_resp.to_string();
         }
     }
 }
