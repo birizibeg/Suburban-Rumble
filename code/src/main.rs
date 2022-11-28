@@ -115,7 +115,6 @@ fn main() {
 			SystemSet::on_update(GameState::Conversation)
 				.label("conversation")
 				.with_system(conversation::text_input)
-				.with_system(conversation::handle_player_response)
 			    .with_system(conversation::process_input)
 		)
 		.add_system(change_gamestate)
@@ -161,27 +160,6 @@ fn setup_start(
 			..default()
 		})
 		.insert(IsStart());
-
-	commands.spawn_bundle(TextBundle::from_section(
-		"Press \"S\" to start .",
-		TextStyle {
-			font: asset_server.load("fonts/Minecraft.ttf"),
-			font_size: 20.0,
-			color: Color::WHITE,
-		},
-	))
-	.insert(IsStart());
-
-	commands.spawn_bundle(TextBundle::from_section(
-		"Press \"C\" to view credits.",
-		TextStyle {
-			font: asset_server.load("fonts/Minecraft.ttf"),
-			font_size: 20.0,
-			color: Color::WHITE,
-		}
-	))
-	.insert(IsStart());
-
 }
 
 fn animate_start(
@@ -442,25 +420,6 @@ fn change_gamestate(
 	mut game_state: ResMut<State<GameState>>,
 
 ) {
-	match game_state.current(){
-		GameState::Start =>{
-			if keys.pressed(KeyCode::S) {	// change GameState to Start
-			match game_state.set(GameState::Conversation) {
-				Ok(_) => info!("GameState: Conversation"),
-				Err(_) => (),
-			}
-		}
-		if (keys.pressed(KeyCode::C)) {	// change GameState to Start
-			match game_state.set(GameState::Credits) {
-				Ok(_) => info!("GameState: Credits"),
-				Err(_) => (),
-			}
-		}
-		}
-		GameState::Conversation =>{}
-		GameState::Fight =>{}
-		GameState::Credits =>{}
-	}
 	if keys.pressed(KeyCode::Key1) {	// change GameState to Start
 			match game_state.set(GameState::Start) {
 				Ok(_) => info!("GameState: Start"),

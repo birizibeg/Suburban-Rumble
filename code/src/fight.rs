@@ -273,6 +273,7 @@ pub fn clear_fight(
 	mut enemy: Query<Entity, With<Enemy>>,
 	healthbar_tops: Query<Entity, With<HealthBarTop>>,
 	healthbar_bottoms: Query<Entity, With<HealthBarBottom>>,
+	attack: Query<Entity, With<PlayerAttack>>,
 ) {
     let player_eid = player.single_mut();
     commands.entity(player_eid).despawn();
@@ -282,6 +283,9 @@ pub fn clear_fight(
 		commands.entity(eid).despawn();
 	}
 	for eid in healthbar_bottoms.iter() {
+		commands.entity(eid).despawn();
+	}
+	for eid in attack.iter(){
 		commands.entity(eid).despawn();
 	}
 }
