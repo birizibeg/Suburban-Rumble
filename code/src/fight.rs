@@ -1,3 +1,5 @@
+mod enemy;
+
 use bevy::{
     prelude::*
 };
@@ -27,6 +29,9 @@ pub struct Enemy;
 
 #[derive(Component, Deref, DerefMut)]
 pub struct DespawnTimer(Timer);
+
+#[derive(Component, Deref, DerefMut)]
+pub struct AnimationTimer(Timer);
 
 #[derive(Component)]
 pub struct PlayerName(String);
@@ -60,7 +65,7 @@ impl Stats {
 }
 
 #[derive(Component)]
-pub struct Actions {	// actions struct to handle
+pub struct Actions {	// actions struct to help regulate actions
 	attacking: bool,
 	blocking: bool,
 }
@@ -162,8 +167,24 @@ impl From<StateMachine<Move>> for StateMachine<Stand> {
 	}
 }
 
-pub fn setup_fight(mut commands: Commands, mut clear_color: ResMut<ClearColor>) {
-    clear_color.0 = Color::DARK_GRAY;	// subject to change
+pub fn setup_fight(
+	mut commands: Commands,
+	//mut clear_color: ResMut<ClearColor>,
+	asset_server: Res<AssetServer>,
+	mut texture_atlases: ResMut<Assets<TextureAtlas>>,
+) {
+    //clear_color.0 = Color::DARK_GRAY;	// subject to change
+
+	let texture_handle = asset_server.load("start_sprite_screen.png");
+	let texture_atlas = TextureAtlas::from_grid(texture_handle, Vec2::new(320., 180.), 46, 1);
+	let texture_atlas_handle = texture_atlases.add(texture_atlas);
+	
+	commands.spawn_bundle(SpriteSheetBundle {
+		texture_atlas: texture_atlas_handle,
+		transform: Transform::from_scale(Vec3::splat(4.)),
+		..default()
+	})
+	.insert(AnimationTimer(Timer::from_seconds(0.125,  true)));
 
 	// spawn the player sprite
     commands.spawn_bundle(SpriteBundle {
@@ -173,7 +194,7 @@ pub fn setup_fight(mut commands: Commands, mut clear_color: ResMut<ClearColor>) 
             ..default()
         },
         transform: Transform {
-            translation: Vec3::new(-crate::WIN_W/4., 0., 0.),
+            translation: Vec3::new(-crate::WIN_W/4., 0., 1.),
             ..default()
         },
         ..default()
@@ -191,7 +212,7 @@ pub fn setup_fight(mut commands: Commands, mut clear_color: ResMut<ClearColor>) 
 			..default()
 		},
 		transform: Transform {
-			translation: Vec3::new(crate::WIN_W/4., 0., 0.),
+			translation: Vec3::new(crate::WIN_W/4., 0., 1.),
 			..default()
 		},
 		..default()
@@ -209,7 +230,7 @@ pub fn setup_fight(mut commands: Commands, mut clear_color: ResMut<ClearColor>) 
 			..default()
 		},
 		transform: Transform {
-			translation: Vec3::new( (-crate::WIN_W/2. + HEALTHBAR_X/2.)+16., (crate::WIN_H/2. - HEALTHBAR_Y/2.)-16., 1.),
+			translation: Vec3::new( (-crate::WIN_W/2. + HEALTHBAR_X/2.)+16., (crate::WIN_H/2. - HEALTHBAR_Y/2.)-16., 2.),
 			..default()
 		},
 		..default()
@@ -223,7 +244,7 @@ pub fn setup_fight(mut commands: Commands, mut clear_color: ResMut<ClearColor>) 
 			..default()
 		},
 		transform: Transform {
-			translation: Vec3::new( (-crate::WIN_W/2. + HEALTHBAR_X/2.)+16., (crate::WIN_H/2. - HEALTHBAR_Y/2.)-16., 0.),
+			translation: Vec3::new( (-crate::WIN_W/2. + HEALTHBAR_X/2.)+16., (crate::WIN_H/2. - HEALTHBAR_Y/2.)-16., 1.),
 			..default()
 		},
 		..default()
@@ -239,7 +260,7 @@ pub fn setup_fight(mut commands: Commands, mut clear_color: ResMut<ClearColor>) 
 			..default()
 		},
 		transform: Transform {
-			translation: Vec3::new( (crate::WIN_W/2. - HEALTHBAR_X/2.)-16., (crate::WIN_H/2. - HEALTHBAR_Y/2.)-16., 1.),
+			translation: Vec3::new( (crate::WIN_W/2. - HEALTHBAR_X/2.)-16., (crate::WIN_H/2. - HEALTHBAR_Y/2.)-16., 2.),
 			..default()
 		},
 		..default()
@@ -253,7 +274,7 @@ pub fn setup_fight(mut commands: Commands, mut clear_color: ResMut<ClearColor>) 
 			..default()
 		},
 		transform: Transform {
-			translation: Vec3::new( (crate::WIN_W/2. - HEALTHBAR_X/2.)-16., (crate::WIN_H/2. - HEALTHBAR_Y/2.)-16., 0.),
+			translation: Vec3::new( (crate::WIN_W/2. - HEALTHBAR_X/2.)-16., (crate::WIN_H/2. - HEALTHBAR_Y/2.)-16., 1.),
 			..default()
 		},
 		..default()
@@ -262,6 +283,24 @@ pub fn setup_fight(mut commands: Commands, mut clear_color: ResMut<ClearColor>) 
 	.insert(EnemyName(String::from("dummy")));
 	
 	
+}
+
+pub fn animate_background(
+	time: Res<Time>,
+	texture_atlases: Res<Assets<TextureAtlas>>,
+	mut query: Query<(
+		&mut AnimationTimer, 
+		&mut TextureAtlasSprite, 
+		&Handle<TextureAtlas>
+	)>,
+){
+	for(mut timer, mut sprite, _texture_atlas_handle) in &mut query{
+		timer.tick(time.delta());
+		if timer.just_finished(){
+			let texture_atlas = texture_atlases.get(_texture_atlas_handle).unwrap();
+			sprite.index = (sprite.index + 1) % texture_atlas.textures.len();
+		}
+	}
 }
 
 //changes the clear color back to black and despawns the character entities,
@@ -532,7 +571,7 @@ pub fn collision_handle(
 						..default()
 					},
 					transform: Transform {
-						translation: Vec3::new( x_pos, (crate::WIN_H/2. - HEALTHBAR_Y/2.)-16., 1.),
+						translation: Vec3::new( x_pos, (crate::WIN_H/2. - HEALTHBAR_Y/2.)-16., 2.),
 						..default()
 					},
 					..default()
@@ -568,7 +607,7 @@ pub fn collision_handle(
 						..default()
 					},
 					transform: Transform {
-						translation: Vec3::new( x_pos, (crate::WIN_H/2. - HEALTHBAR_Y/2.)-16., 1.),
+						translation: Vec3::new( x_pos, (crate::WIN_H/2. - HEALTHBAR_Y/2.)-16., 2.),
 						..default()
 					},
 					..default()
@@ -603,7 +642,7 @@ pub fn collision_handle(
 							..default()
 						},
 						transform: Transform {
-							translation: Vec3::new( x_pos, (crate::WIN_H/2. - HEALTHBAR_Y/2.)-16., 1.),
+							translation: Vec3::new( x_pos, (crate::WIN_H/2. - HEALTHBAR_Y/2.)-16., 2.),
 							..default()
 						},
 						..default()
@@ -636,7 +675,7 @@ pub fn collision_handle(
 							..default()
 						},
 						transform: Transform {
-							translation: Vec3::new( x_pos, (crate::WIN_H/2. - HEALTHBAR_Y/2.)-16., 1.),
+							translation: Vec3::new( x_pos, (crate::WIN_H/2. - HEALTHBAR_Y/2.)-16., 2.),
 							..default()
 						},
 						..default()
@@ -825,7 +864,6 @@ pub fn collision_handle(
 		}
 }
 
-//doesn't do anything right now other than apply gravity to the enemy
 //movement decision-making will come later as a part of AI
 pub fn move_enemy(
 	time: Res<Time>,
@@ -838,7 +876,6 @@ pub fn move_enemy(
 
 	let mut deltav = Vec2::splat(0.);
 
-	//let begin_state = StateMachine::new();
 	// (this is where decision making about movement will go)
 	let begin_state = StateMachine::new();
 	let next_state = StateMachine::<Move>::from(begin_state);
@@ -850,7 +887,7 @@ pub fn move_enemy(
 		deltav.x = next_state.state.x;
 	}
 	
-	deltav.y -= 1.;// just make the enemy affected by gravity for now
+	deltav.y -= 1.;	// enemy is affected by gravity, if we allow enemy to jump this should be a conditional (like the player)
 	
 	// calculating by deltat instead of just relying on frames *should* normalize for different framerates
 	let deltat = time.delta_seconds();
@@ -1006,7 +1043,7 @@ pub fn attack(
 				..default()
 			},
             transform: Transform {
-            translation: Vec3::new(player_transform.translation.x+attack_xpos, player_transform.translation.y+32., 0.),
+            translation: Vec3::new(player_transform.translation.x+attack_xpos, player_transform.translation.y+32., 2.),
             ..default()
         },
 			..default()
@@ -1031,11 +1068,11 @@ pub fn attack(
 		}*/
 		let punch_collide_result = collide(
 			//apos
-			Vec3::new(player_transform.translation.x+attack_xpos, player_transform.translation.y+32., 0.),
+			Vec3::new(player_transform.translation.x+attack_xpos, player_transform.translation.y+32., 2.),
 			//asize
 			Vec2::new(80.,32.),
 			//bpos
-			Vec3::new(enemy_transform.translation.x, enemy_transform.translation.y, 0.),
+			Vec3::new(enemy_transform.translation.x, enemy_transform.translation.y, 2.),
 			//bsize
 			Vec2::new(PLAYER_W, PLAYER_H)
 		);
@@ -1073,7 +1110,7 @@ pub fn attack(
 				..default()
 			},
             transform: Transform {
-            translation: Vec3::new(player_transform.translation.x+attack_xpos, player_transform.translation.y-32., 0.1),
+            translation: Vec3::new(player_transform.translation.x+attack_xpos, player_transform.translation.y-32., 2.),
             ..default()
         },
 			..default()
@@ -1097,11 +1134,11 @@ pub fn attack(
 		}*/
 		let kick_collide_result = collide(
 			//apos
-			Vec3::new(player_transform.translation.x+attack_xpos, player_transform.translation.y-32., 0.),
+			Vec3::new(player_transform.translation.x+attack_xpos, player_transform.translation.y-32., 2.),
 			//asize
 			Vec2::new(80.,32.),
 			//bpos
-			Vec3::new(enemy_transform.translation.x, enemy_transform.translation.y, 0.),
+			Vec3::new(enemy_transform.translation.x, enemy_transform.translation.y, 2.),
 			//bsize
 			Vec2::new(PLAYER_W, PLAYER_H)
 		);
