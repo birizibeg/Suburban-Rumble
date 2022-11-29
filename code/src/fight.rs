@@ -7,6 +7,7 @@ use bevy::sprite::collide_aabb::collide;
 use bevy::sprite::collide_aabb::Collision;
 use super::CollideEvent;
 use super::FightWinEvent;
+use super::FightLossEvent;
 
 const PLAYER_W: f32 = 64.;
 const PLAYER_H: f32 = 128.;
@@ -285,6 +286,7 @@ pub fn setup_fight(
 	
 }
 
+//animates the background image (just copied over from the start screen code in main.rs)
 pub fn animate_background(
 	time: Res<Time>,
 	texture_atlases: Res<Assets<TextureAtlas>>,
@@ -303,9 +305,7 @@ pub fn animate_background(
 	}
 }
 
-//changes the clear color back to black and despawns the character entities,
-//might want to move the clear_color change over to setup_credits so it
-//doesn't have to rely on other states transitioning correctly
+//despawns player, healthbar, attack entities
 pub fn clear_fight(
     mut commands: Commands,
     mut player: Query<Entity, With<Player>>,
@@ -355,7 +355,7 @@ pub fn move_player(
 	mut enemy: Query<&Transform, With<Enemy>>
 ) {
     let (mut player_transform, mut player_velocity, player_actions) = player.single_mut();
-	let enemy_transform= enemy.single_mut();
+	let enemy_transform = enemy.single_mut();
 
 	let mut deltav = Vec2::splat(0.);
 
@@ -376,10 +376,6 @@ pub fn move_player(
 		deltav.y -= 1.;
 	}
 
-	if input.pressed(KeyCode::S) {
-		//deltav.y -= 1.;
-        //copied from bevy examples, this should make the player crouch and not just move down
-	}
 
 	// calculating by deltat instead of just relying on frames *should* normalize for different framerates
 	let deltat = time.delta_seconds();
@@ -401,12 +397,12 @@ pub fn move_player(
 		//player has jumped
 		deltav.normalize_or_zero().y * (grav * 25.)
 	} else if deltav.y < 0.
-		&& player_transform.translation.y!=enemy_transform.translation.y+PLAYER_H {
+		&& player_transform.translation.y != enemy_transform.translation.y+PLAYER_H {
 		//player is falling/not jumping
 		player_velocity.velocity.y + (deltav.normalize_or_zero().y * grav)
-	} else if player_transform.translation.y==enemy_transform.translation.y+PLAYER_H 
-		&& (player_transform.translation.x+PLAYER_W/2.0<=enemy_transform.translation.x-PLAYER_W/2.0
-		|| player_transform.translation.x-PLAYER_W/2.0>=enemy_transform.translation.x+PLAYER_W/2.0) {
+	} else if player_transform.translation.y == enemy_transform.translation.y+PLAYER_H 
+		&& (player_transform.translation.x+PLAYER_W/2.0 <= enemy_transform.translation.x-PLAYER_W/2.0
+		|| player_transform.translation.x-PLAYER_W/2.0 >= enemy_transform.translation.x+PLAYER_W/2.0) {
 		player_velocity.velocity.y + (deltav.normalize_or_zero().y * grav)
 	} else {
 		0.
@@ -424,7 +420,7 @@ pub fn move_player(
 		0.,
 	);
 	//calls collision function to see if a collision happened  
-	let collide=check_collision(
+	let collide = check_collision(
 		//apos
 		new_pos,
 		//asize
@@ -437,39 +433,30 @@ pub fn move_player(
 
 	// if a collision does happen then an event is sent to the collision_handle system 
 	// A string is also sent that indicates on what side the collision occurred relative to the player
-	if collide{
-		if new_pos.x<enemy_transform.translation.x{
+	if collide {
+		if new_pos.x < enemy_transform.translation.x {
 			player_send.send(CollideEvent(true,String::from("rightside")));
 		}
-		if new_pos.x>enemy_transform.translation.x{
+		if new_pos.x > enemy_transform.translation.x {
 			player_send.send(CollideEvent(true,String::from("leftside")));
 		}
-
 	}
-
 	// if the new pos does not collide with the enemy and is inside the window then the player pos is set to the new pos
 	if !collide 
 	  && new_pos.x >= -(crate::WIN_W/2.) + PLAYER_W/2. 
 	  && new_pos.x <= crate::WIN_W/2. - PLAYER_W/2.
-	{
-		
+	{	
 		player_transform.translation = new_pos;
 		player_send.send(CollideEvent(false,String::from("nocollision")));
 	}
 	 
-
-
-	// check for player staying within the window with new x position
-	//if new_pos.x >= -(crate::WIN_W/2.) + PLAYER_W/2. && new_pos.x <= crate::WIN_W/2. - PLAYER_W/2. {
-	//	player_transform.translation = new_pos;
-	//}
 
 	let new_pos = player_transform.translation + Vec3::new(
 		//changes the new position to FLOOR_HEIGHT + PLAYER_H/2 if it becomes less than that
 		0.,
 		if change.y + player_transform.translation.y < FLOOR_HEIGHT + PLAYER_H/2.{
 			 -1.*player_transform.translation.y + FLOOR_HEIGHT + PLAYER_H/2.
-		}else{
+		} else {
 			change.y
 		},
 		0.,
@@ -482,34 +469,26 @@ pub fn move_player(
 		//asize
 		Vec2::new(PLAYER_H/2., PLAYER_W/2.),
 		//bpos
-		 Vec3::new(enemy_transform.translation.x,enemy_transform.translation.y+PLAYER_H,enemy_transform.translation.z),
+		Vec3::new(enemy_transform.translation.x,enemy_transform.translation.y+PLAYER_H,enemy_transform.translation.z),
 		//bsize
 		Vec2::new(PLAYER_H/2.,PLAYER_W/2.)
 	);
 
 	if collide{
-		if new_pos.y<enemy_transform.translation.y+PLAYER_H{
+		if new_pos.y < enemy_transform.translation.y+PLAYER_H {
 			player_send.send(CollideEvent(true,String::from("topside")));
 		}
-		if new_pos.y>=enemy_transform.translation.y+PLAYER_H{
+		if new_pos.y >= enemy_transform.translation.y+PLAYER_H {
 			player_send.send(CollideEvent(true,String::from("bottomside")));
 		}
-
 	}
 	if !collide
 	   && new_pos.y >= FLOOR_HEIGHT + PLAYER_H/2. 
-	   && new_pos.y <= crate::WIN_H/2. - PLAYER_H/2.
-		
+	   && new_pos.y <= crate::WIN_H/2. - PLAYER_H/2.	
 	{
 		player_transform.translation = new_pos;
 		player_send.send(CollideEvent(false,String::from("nocollision")));
-
 	}
-	
-	// check for player staying within the window and above the floor with new y position
-	//if new_pos.y >= FLOOR_HEIGHT + PLAYER_H/2. && new_pos.y <= crate::WIN_H/2. - PLAYER_H/2. {
-	//	player_transform.translation = new_pos;
-	//}
 }
 
 // collision_handle system deals with all the collisions and what to do depending on the kind of collision
@@ -523,46 +502,46 @@ pub fn collision_handle(
 ){
 	let mut player_transform = player.single_mut();
 	let (enemy_transform, mut enemy_velocity, mut enemy_stats) = enemy.single_mut();
-		for p in player_receive.iter(){
-			if p.0 == true {
+	for p in player_receive.iter(){
+		if p.0 == true {
+			if p.1.contains("rightside"){
 				// if the collision is on the right side of the player then just adjust the player x pos so it can't pass through the enemy
-				if p.1.contains("rightside"){
-				player_transform.translation=player_transform.translation + Vec3::new(
+				player_transform.translation = player_transform.translation + Vec3::new(
 					enemy_transform.translation.x-player_transform.translation.x-PLAYER_W,
 					0.,
 					0.,
 				);
-			  }else if p.1.contains("leftside") {
+			} else if p.1.contains("leftside") {
 				// if the collision is on the left side of the player then just adjust the player x pos so it can't pass through the enemy
-				player_transform.translation=player_transform.translation - Vec3::new(
+				player_transform.translation = player_transform.translation - Vec3::new(
 					player_transform.translation.x-enemy_transform.translation.x-PLAYER_W,
 					0.,
 					0.,
 				);
-			  }else if p.1.contains("bottomside") {
+			} else if p.1.contains("bottomside") {
 				// This is supposed to handle collisions for the bottom side of the player
 				// for example if the player jumps on the enemy then there would be a collision on the bottom side of the player
 				// It is currently not working because I think the gravity being applied needs to be taken into consideration
-				player_transform.translation= Vec3::new(
+				player_transform.translation = Vec3::new(
 					player_transform.translation.x,
 					enemy_transform.translation.y + PLAYER_H,
 					player_transform.translation.z,
 				);
-			  }else if p.1.contains("punchleft"){
+			} else if p.1.contains("punchleft") {
 				// this handles punch collisions 
-				// The current entity is despawned and a new entity with updated health, size and pos is spawned 
+				// The current healthbar entity is despawned and a new entity with updated health, size and pos is spawned 
 				enemy_velocity.velocity = enemy_velocity.velocity + Vec2::new(
 					700.,
 					0.,
-			  	);
+				);
 				if enemy_stats.health-PUNCHATTACK > 0.{ 
-				enemy_stats.health=enemy_stats.health-PUNCHATTACK;
+					enemy_stats.health = enemy_stats.health-PUNCHATTACK;
 				} else {
-					enemy_stats.health=0.;
+					enemy_stats.health = 0.;
 				}
-				let enemy_healthbar_eid=enemy_healthbar_en.single();
-				let x_size=5.*enemy_stats.health;
-				let x_pos=(crate::WIN_W/2. - 5.*enemy_stats.health/2.)-16.;
+				let enemy_healthbar_eid = enemy_healthbar_en.single();
+				let x_size = 5.*enemy_stats.health;
+				let x_pos = (crate::WIN_W/2. - 5.*enemy_stats.health/2.)-16.;
 				commands.entity(enemy_healthbar_eid).despawn();
 				commands.spawn_bundle(SpriteBundle {
 					sprite: Sprite {
@@ -578,27 +557,24 @@ pub fn collision_handle(
 				})
 				.insert(HealthBarTop)
 				.insert(EnemyName(String::from("dummy")));
-				if enemy_stats.health==0.{
-					// For now this just resets the enemy health
-					// In the future we can add code to transition to the next fight or conversation
-					enemy_stats.health=0.;
-					win_state.send(FightWinEvent());
+				if enemy_stats.health == 0.{
+					win_state.send(FightWinEvent());	// enemy health has reached zero, player has won the fight
 				}
-			  }else if p.1.contains("punchright"){
+			} else if p.1.contains("punchright") {
 				// this handles punch collisions 
-				// The current entity is despawned and a new entity with updated health, size and pos is spawned 
+				// The current healthbar entity is despawned and a new entity with updated health, size and pos is spawned 
 				enemy_velocity.velocity = enemy_velocity.velocity + Vec2::new(
 					-700.,
 					0.,
-			  	);
+				);
 				if enemy_stats.health-PUNCHATTACK > 0.{ 
-				enemy_stats.health=enemy_stats.health-PUNCHATTACK;
+				enemy_stats.health = enemy_stats.health-PUNCHATTACK;
 				} else {
-					enemy_stats.health=0.;
+					enemy_stats.health = 0.;
 				}
-				let enemy_healthbar_eid=enemy_healthbar_en.single();
-				let x_size=5.*enemy_stats.health;
-				let x_pos=(crate::WIN_W/2. - 5.*enemy_stats.health/2.)-16.;
+				let enemy_healthbar_eid = enemy_healthbar_en.single();
+				let x_size = 5.*enemy_stats.health;
+				let x_pos = (crate::WIN_W/2. - 5.*enemy_stats.health/2.)-16.;
 				commands.entity(enemy_healthbar_eid).despawn();
 				commands.spawn_bundle(SpriteBundle {
 					sprite: Sprite {
@@ -614,201 +590,163 @@ pub fn collision_handle(
 				})
 				.insert(HealthBarTop)
 				.insert(EnemyName(String::from("dummy")));
-				if enemy_stats.health==0.{
-					// For now this just resets the enemy health
-					// In the future we can add code to transition to the next fight or conversation
-					enemy_stats.health=0.;
-					win_state.send(FightWinEvent());
+				if enemy_stats.health == 0.{
+					win_state.send(FightWinEvent());	// enemy health has reached zero, player has won the fight
 				}
-			  }else if p.1.contains("kickleft"){
+			} else if p.1.contains("kickleft") {
 				enemy_velocity.velocity = enemy_velocity.velocity + Vec2::new(
 					1000.,
 					0.,
-			  	);
+				);
 				if enemy_stats.health - KICKATTACK > 0. {
-					enemy_stats.health=enemy_stats.health-20.;
-					}else{
-						enemy_stats.health=0.;
-					}
-					println!("Enemy health is {}",enemy_stats.health);
-					let enemy_healthbar_eid=enemy_healthbar_en.single();
-					let x_size=5.*enemy_stats.health;
-					let x_pos=(crate::WIN_W/2. - 5.*enemy_stats.health/2.)-16.;
-					commands.entity(enemy_healthbar_eid).despawn();
-					commands.spawn_bundle(SpriteBundle {
-						sprite: Sprite {
-							color: Color::LIME_GREEN,
-							custom_size: Some(Vec2::new(x_size, HEALTHBAR_Y)),
-							..default()
-						},
-						transform: Transform {
-							translation: Vec3::new( x_pos, (crate::WIN_H/2. - HEALTHBAR_Y/2.)-16., 2.),
-							..default()
-						},
+					enemy_stats.health = enemy_stats.health-20.;
+				} else {
+					enemy_stats.health = 0.;
+				}
+				println!("Enemy health is {}",enemy_stats.health);
+				let enemy_healthbar_eid = enemy_healthbar_en.single();
+				let x_size = 5.*enemy_stats.health;
+				let x_pos = (crate::WIN_W/2. - 5.*enemy_stats.health/2.)-16.;
+				commands.entity(enemy_healthbar_eid).despawn();
+				commands.spawn_bundle(SpriteBundle {
+					sprite: Sprite {
+						color: Color::LIME_GREEN,
+						custom_size: Some(Vec2::new(x_size, HEALTHBAR_Y)),
 						..default()
-					})
-					.insert(HealthBarTop)
-					.insert(EnemyName(String::from("dummy")));
-					if enemy_stats.health==0.{
-						enemy_stats.health=0.;
-						win_state.send(FightWinEvent());
-					}
-			  } else if p.1.contains("kickright"){
+					},
+					transform: Transform {
+						translation: Vec3::new( x_pos, (crate::WIN_H/2. - HEALTHBAR_Y/2.)-16., 2.),
+						..default()
+					},
+					..default()
+				})
+				.insert(HealthBarTop)
+				.insert(EnemyName(String::from("dummy")));
+				if enemy_stats.health == 0.{
+					win_state.send(FightWinEvent());	// enemy health has reached zero, player has won the fight
+				}
+			} else if p.1.contains("kickright") {
 				enemy_velocity.velocity = enemy_velocity.velocity + Vec2::new(
 					-1000.,
 					0.,
-			  	);
+				);
 				if enemy_stats.health - KICKATTACK > 0. {
-					enemy_stats.health=enemy_stats.health-20.;
-					}else{
-						enemy_stats.health=0.;
-					}
-					println!("Enemy health is {}",enemy_stats.health);
-					let enemy_healthbar_eid=enemy_healthbar_en.single();
-					let x_size=5.*enemy_stats.health;
-					let x_pos=(crate::WIN_W/2. - 5.*enemy_stats.health/2.)-16.;
-					commands.entity(enemy_healthbar_eid).despawn();
-					commands.spawn_bundle(SpriteBundle {
-						sprite: Sprite {
-							color: Color::LIME_GREEN,
-							custom_size: Some(Vec2::new(x_size, HEALTHBAR_Y)),
-							..default()
-						},
-						transform: Transform {
-							translation: Vec3::new( x_pos, (crate::WIN_H/2. - HEALTHBAR_Y/2.)-16., 2.),
-							..default()
-						},
+					enemy_stats.health = enemy_stats.health-20.;
+				} else {
+					enemy_stats.health = 0.;
+				}
+				println!("Enemy health is {}",enemy_stats.health);
+				let enemy_healthbar_eid = enemy_healthbar_en.single();
+				let x_size = 5.*enemy_stats.health;
+				let x_pos = (crate::WIN_W/2. - 5.*enemy_stats.health/2.)-16.;
+				commands.entity(enemy_healthbar_eid).despawn();
+				commands.spawn_bundle(SpriteBundle {
+					sprite: Sprite {
+						color: Color::LIME_GREEN,
+						custom_size: Some(Vec2::new(x_size, HEALTHBAR_Y)),
 						..default()
-					})
-					.insert(HealthBarTop)
-					.insert(EnemyName(String::from("dummy")));
-					if enemy_stats.health==0.{
-						enemy_stats.health=0.;
-						win_state.send(FightWinEvent());
-					}
-			  }
+					},
+					transform: Transform {
+						translation: Vec3::new( x_pos, (crate::WIN_H/2. - HEALTHBAR_Y/2.)-16., 2.),
+						..default()
+					},
+					..default()
+				})
+				.insert(HealthBarTop)
+				.insert(EnemyName(String::from("dummy")));
+				if enemy_stats.health == 0.{
+					win_state.send(FightWinEvent());	// enemy health has reached zero, player has won the fight
+				}
 			}
 		}
-}pub fn enemy_collision_handle(
+	}
+}
+
+pub fn enemy_collision_handle(
 	mut commands: Commands,
 	player_healthbar_en: Query<Entity, (With<Player>,With<HealthBarTop>)>,
+	mut lose_state: EventWriter<FightLossEvent>,
 	mut enemy_receive: EventReader<CollideEvent>,
 	mut player: Query<(&mut Transform, &mut Velocity, &mut Stats), (With<Player>, Without<Enemy>)>,
 	mut enemy: Query<(&mut Transform, &mut Velocity, &mut Stats), (With<Enemy>, Without<Player>)>,
 ){
 	let (mut player_transform, mut player_velocity, mut player_stats) = player.single_mut();
-	let ( mut enemy_transform, mut enemy_velocity, mut enemy_stats) = enemy.single_mut();
+	let (mut enemy_transform, mut enemy_velocity, mut enemy_stats) = enemy.single_mut();
 		for p in enemy_receive.iter(){
 			if p.0 == true {
-				// if the collision is on the right side of the player then just adjust the player x pos so it can't pass through the enemy
 				if p.1.contains("rightside"){
-					enemy_transform.translation=enemy_transform.translation + Vec3::new(
-					player_transform.translation.x-enemy_transform.translation.x-PLAYER_W,
-					0.,
-					0.,
-				);
-				enemy_velocity.velocity.x = -1.;
-			  }else if p.1.contains("leftside") {
-				// if the collision is on the left side of the player then just adjust the player x pos so it can't pass through the enemy
-					enemy_transform.translation=enemy_transform.translation - Vec3::new(
-					enemy_transform.translation.x-player_transform.translation.x-PLAYER_W,
-					0.,
-					0.,
-				);
-				enemy_velocity.velocity.x = 1.;
-			  }else if p.1.contains("bottomside") {
-				// This is supposed to handle collisions for the bottom side of the player
-				// for example if the player jumps on the enemy then there would be a collision on the bottom side of the player
-				// It is currently not working because I think the gravity being applied needs to be taken into consideration
-				enemy_transform.translation= Vec3::new(
-					enemy_transform.translation.x,
-					player_transform.translation.y + PLAYER_H,
-					enemy_transform.translation.z,
-				);
-			  }else if p.1.contains("punchleft"){
-				// this handles punch collisions 
-				// The current entity is despawned and a new entity with updated health, size and pos is spawned 
-				player_velocity.velocity = player_velocity.velocity + Vec2::new(
-					700.,
-					0.,
-			  	);
-				if player_stats.health-PUNCHATTACK > 0.{ 
-				player_stats.health=player_stats.health-PUNCHATTACK;
-				} else {
-					player_stats.health=0.;
-				}
-				let player_healthbar_eid=player_healthbar_en.single();
-				let x_size=5.*player_stats.health;
-				let x_pos=(crate::WIN_W/2. - 5.*player_stats.health/2.)-16.;
-				commands.entity(player_healthbar_eid).despawn();
-				commands.spawn_bundle(SpriteBundle {
-					sprite: Sprite {
-						color: Color::LIME_GREEN,
-						custom_size: Some(Vec2::new(x_size, HEALTHBAR_Y)),
-						..default()
-					},
-					transform: Transform {
-						translation: Vec3::new( x_pos, (crate::WIN_H/2. - HEALTHBAR_Y/2.)-16., 1.),
-						..default()
-					},
-					..default()
-				})
-				.insert(HealthBarTop)
-				.insert(EnemyName(String::from("dummy")));
-				if player_stats.health==0.{
-					// For now this just resets the enemy health
-					// In the future we can add code to transition to the next fight or conversation
-					player_stats.health=110.;
-				}
-			  }else if p.1.contains("punchright"){
-				// this handles punch collisions 
-				// The current entity is despawned and a new entity with updated health, size and pos is spawned 
-				player_velocity.velocity = player_velocity.velocity + Vec2::new(
-					-700.,
-					0.,
-			  	);
-				if player_stats.health-PUNCHATTACK > 0.{ 
-				player_stats.health=player_stats.health-PUNCHATTACK;
-				} else {
-					player_stats.health=0.;
-				}
-				let player_healthbar_eid=player_healthbar_en.single();
-				let x_size=5.*player_stats.health;
-				let x_pos=(crate::WIN_W/2. - 5.*player_stats.health/2.)-16.;
-				commands.entity(player_healthbar_eid).despawn();
-				commands.spawn_bundle(SpriteBundle {
-					sprite: Sprite {
-						color: Color::LIME_GREEN,
-						custom_size: Some(Vec2::new(x_size, HEALTHBAR_Y)),
-						..default()
-					},
-					transform: Transform {
-						translation: Vec3::new( x_pos, (crate::WIN_H/2. - HEALTHBAR_Y/2.)-16., 1.),
-						..default()
-					},
-					..default()
-				})
-				.insert(HealthBarTop)
-				.insert(EnemyName(String::from("Player")));
-				if player_stats.health==0.{
-					// For now this just resets the enemy health
-					// In the future we can add code to transition to the next fight or conversation
-					player_stats.health=110.;
-				}
-			  }else if p.1.contains("kickleft"){
-				player_velocity.velocity = player_velocity.velocity + Vec2::new(
-					1000.,
-					0.,
-			  	);
-				if player_stats.health - KICKATTACK > 0. {
-					player_stats.health=player_stats.health-20.;
-					}else{
-						player_stats.health=0.;
+					// if the collision is on the right side of the player then just adjust the player x pos so it can't pass through the enemy
+					enemy_transform.translation = enemy_transform.translation + Vec3::new(
+						player_transform.translation.x-enemy_transform.translation.x-PLAYER_W,
+						0.,
+						0.,
+					);
+					enemy_velocity.velocity.x = -1.;
+			  	} else if p.1.contains("leftside") {
+					// if the collision is on the left side of the player then just adjust the player x pos so it can't pass through the enemy
+						enemy_transform.translation = enemy_transform.translation - Vec3::new(
+						enemy_transform.translation.x-player_transform.translation.x-PLAYER_W,
+						0.,
+						0.,
+					);
+					enemy_velocity.velocity.x = 1.;
+				} else if p.1.contains("bottomside") {
+					// This is supposed to handle collisions for the bottom side of the player
+					// for example if the player jumps on the enemy then there would be a collision on the bottom side of the player
+					// It is currently not working because I think the gravity being applied needs to be taken into consideration
+					enemy_transform.translation = Vec3::new(
+						enemy_transform.translation.x,
+						player_transform.translation.y + PLAYER_H,
+						enemy_transform.translation.z,
+					);
+				} else if p.1.contains("punchleft") {
+					// this handles punch collisions 
+					// The current healthbar entity is despawned and a new entity with updated health, size and pos is spawned 
+					player_velocity.velocity = player_velocity.velocity + Vec2::new(
+						700.,
+						0.,
+					);
+					if player_stats.health-PUNCHATTACK > 0.{ 
+						player_stats.health = player_stats.health-PUNCHATTACK;
+					} else {
+						player_stats.health = 0.;
 					}
-					println!("Enemy health is {}",player_stats.health);
-					let player_healthbar_eid=player_healthbar_en.single();
-					let x_size=5.*player_stats.health;
-					let x_pos=(crate::WIN_W/2. - 5.*player_stats.health/2.)-16.;
+					let player_healthbar_eid = player_healthbar_en.single();
+					let x_size = 5.*player_stats.health;
+					let x_pos = (crate::WIN_W/2. - 5.*player_stats.health/2.)-16.;
+					commands.entity(player_healthbar_eid).despawn();
+					commands.spawn_bundle(SpriteBundle {
+						sprite: Sprite {
+							color: Color::LIME_GREEN,
+							custom_size: Some(Vec2::new(x_size, HEALTHBAR_Y)),
+							..default()
+						},
+						transform: Transform {
+							translation: Vec3::new( x_pos, (crate::WIN_H/2. - HEALTHBAR_Y/2.)-16., 1.),
+							..default()
+						},
+						..default()
+					})
+					.insert(HealthBarTop)
+					.insert(EnemyName(String::from("dummy")));
+					if player_stats.health == 0. {
+						lose_state.send(FightLossEvent());	// player health has reached zero, player has lost the fight
+					}
+				} else if p.1.contains("punchright") {
+					// this handles punch collisions 
+					// The current healthbar entity is despawned and a new entity with updated health, size and pos is spawned 
+					player_velocity.velocity = player_velocity.velocity + Vec2::new(
+						-700.,
+						0.,
+					);
+					if player_stats.health-PUNCHATTACK > 0.{ 
+						player_stats.health=player_stats.health-PUNCHATTACK;
+					} else {
+						player_stats.health = 0.;
+					}
+					let player_healthbar_eid = player_healthbar_en.single();
+					let x_size = 5.*player_stats.health;
+					let x_pos = (crate::WIN_W/2. - 5.*player_stats.health/2.)-16.;
 					commands.entity(player_healthbar_eid).despawn();
 					commands.spawn_bundle(SpriteBundle {
 						sprite: Sprite {
@@ -824,23 +762,55 @@ pub fn collision_handle(
 					})
 					.insert(HealthBarTop)
 					.insert(EnemyName(String::from("Player")));
-					if player_stats.health==0.{
-						player_stats.health=120.;
+					if player_stats.health == 0. {
+						lose_state.send(FightLossEvent());	// player health has reached zero, player has lost the fight
 					}
-			  } else if p.1.contains("kickright"){
-				player_velocity.velocity = player_velocity.velocity + Vec2::new(
-					-1000.,
-					0.,
-			  	);
-				if player_stats.health - KICKATTACK > 0. {
-					player_stats.health=player_stats.health-20.;
-					}else{
+				} else if p.1.contains("kickleft") {
+					player_velocity.velocity = player_velocity.velocity + Vec2::new(
+						1000.,
+						0.,
+					);
+					if player_stats.health - KICKATTACK > 0. {
+						player_stats.health = player_stats.health-20.;
+					} else {
+						player_stats.health = 0.;
+					}
+					println!("Enemy health is {}",player_stats.health);
+					let player_healthbar_eid = player_healthbar_en.single();
+					let x_size = 5.*player_stats.health;
+					let x_pos = (crate::WIN_W/2. - 5.*player_stats.health/2.)-16.;
+					commands.entity(player_healthbar_eid).despawn();
+					commands.spawn_bundle(SpriteBundle {
+						sprite: Sprite {
+							color: Color::LIME_GREEN,
+							custom_size: Some(Vec2::new(x_size, HEALTHBAR_Y)),
+							..default()
+						},
+						transform: Transform {
+							translation: Vec3::new( x_pos, (crate::WIN_H/2. - HEALTHBAR_Y/2.)-16., 1.),
+							..default()
+						},
+						..default()
+					})
+					.insert(HealthBarTop)
+					.insert(EnemyName(String::from("Player")));
+					if player_stats.health == 0. {
+						lose_state.send(FightLossEvent());	// player health has reached zero, player has lost the fight
+					}
+				} else if p.1.contains("kickright") {
+					player_velocity.velocity = player_velocity.velocity + Vec2::new(
+						-1000.,
+						0.,
+					);
+					if player_stats.health - KICKATTACK > 0. {
+						player_stats.health=player_stats.health-20.;
+					} else {
 						player_stats.health=0.;
 					}
 					println!("Player health is {}",player_stats.health);
-					let player_healthbar_eid=player_healthbar_en.single();
-					let x_size=5.*player_stats.health;
-					let x_pos=(crate::WIN_W/2. - 5.*player_stats.health/2.)-16.;
+					let player_healthbar_eid = player_healthbar_en.single();
+					let x_size = 5.*player_stats.health;
+					let x_pos = (crate::WIN_W/2. - 5.*player_stats.health/2.)-16.;
 					commands.entity(player_healthbar_eid).despawn();
 					commands.spawn_bundle(SpriteBundle {
 						sprite: Sprite {
@@ -856,10 +826,10 @@ pub fn collision_handle(
 					})
 					.insert(HealthBarTop)
 					.insert(EnemyName(String::from("Player")));
-					if player_stats.health==0.{
-						player_stats.health=120.;
+					if player_stats.health == 0. {
+						lose_state.send(FightLossEvent());	// player health has reached zero, player has lost the fight
 					}
-			  }
+			  	}
 			}
 		}
 }
@@ -928,7 +898,7 @@ pub fn move_enemy(
 		0.,
 	);
 
-	let collide=check_collision(
+	let collide = check_collision(
 		//apos
 		new_pos,
 		//asize
@@ -939,41 +909,34 @@ pub fn move_enemy(
 		Vec2::new(PLAYER_H/2.,PLAYER_W/2.)
 	);
 
-	if collide{
-		if new_pos.x<enemy_transform.translation.x{
+	if collide {
+		if new_pos.x < enemy_transform.translation.x{
 			enemy_send.send(CollideEvent(true,String::from("rightside")));
-			
 		}
-		if new_pos.x>player_transform.translation.x{
+		if new_pos.x > player_transform.translation.x{
 			enemy_send.send(CollideEvent(true,String::from("leftside")));
 		}
-
 	}
 	if !collide 
 	  && new_pos.x >= -(crate::WIN_W/2.) + PLAYER_W/2. 
 	  && new_pos.x <= crate::WIN_W/2. - PLAYER_W/2.
 	{
-		
 		enemy_transform.translation = new_pos;
 		enemy_send.send(CollideEvent(false,String::from("nocollision")));
 	}
 
-	// check for enemy staying within the window with new x position
-	//if new_pos.x >= -(crate::WIN_W/2.) + PLAYER_W/2. && new_pos.x <= crate::WIN_W/2. - PLAYER_W/2. {
-	//	enemy_transform.translation = new_pos;
-	//}
 
 	let new_pos = enemy_transform.translation + Vec3::new(
 		0.,
 		if change.y + enemy_transform.translation.y < FLOOR_HEIGHT + PLAYER_H/2.{
 			-1.*enemy_transform.translation.y + FLOOR_HEIGHT + PLAYER_H/2.
-	   }else{
+	   } else {
 		   change.y
 	   },
 		0.,
 	);
 
-	let collide=check_collision(
+	let collide = check_collision(
 		//apos
 		new_pos,
 		//asize
@@ -984,33 +947,21 @@ pub fn move_enemy(
 		Vec2::new(PLAYER_H/2.,PLAYER_W/2.)
 	);
 
-	if collide{
-		if new_pos.y<enemy_transform.translation.y{
+	if collide {
+		if new_pos.y < enemy_transform.translation.y{
 			enemy_send.send(CollideEvent(true,String::from("rightside")));
 		}
-		if new_pos.y>player_transform.translation.y{
+		if new_pos.y > player_transform.translation.y{
 			enemy_send.send(CollideEvent(true,String::from("leftside")));
 		}
-
 	}
 	if !collide 
 	  && new_pos.y >= -(crate::WIN_W/2.) + PLAYER_W/2. 
 	  && new_pos.y <= crate::WIN_W/2. - PLAYER_W/2.
 	{
-		
 		enemy_transform.translation = new_pos;
 		enemy_send.send(CollideEvent(false,String::from("nocollision")));
 	}
-
-
-
-
-
-
-	// check for enemy staying within the window and above the floor with new y position
-	//if new_pos.y >= FLOOR_HEIGHT + PLAYER_H/2. && new_pos.y <= crate::WIN_H/2. - PLAYER_H/2. {
-	//	enemy_transform.translation = new_pos;
-	//}
 }
 
 pub fn attack(
@@ -1019,20 +970,18 @@ pub fn attack(
 	mut player: Query<(&mut Transform, &mut Actions), With<Player>>,
 	mut commands: Commands, 
 	mut enemy: Query<&mut Transform, (With<Enemy>, Without<Player>)>,
-	
 ){
     let (player_transform, mut player_actions) = player.single_mut();
 	let enemy_transform = enemy.single_mut();
-	let mut attack_xpos=60.;
-	if player_transform.translation.x>enemy_transform.translation.x{
-		 attack_xpos=-60.;
+	let mut attack_xpos = 60.;
+	if player_transform.translation.x > enemy_transform.translation.x {
+		 attack_xpos = -60.;
 	}
 	
-	if input.just_pressed(KeyCode::P)
-	//&& !input.pressed(KeyCode::D)
-	//&& !input.pressed(KeyCode::A)
-	&& !(player_actions.blocking)
-	&& !(player_actions.attacking) {
+	if input.just_pressed(KeyCode::P)	// punch
+		&& !(player_actions.blocking)
+		&& !(player_actions.attacking)
+	{
 		player_actions.attacking = true;
 
         commands
@@ -1052,20 +1001,6 @@ pub fn attack(
 		.insert(PlayerAttack);
 		// The collision function is called to see if a collision occurred
 		// if there was a collision a signal is sent to the collision_handle system
-		/*if check_collision(
-			//apos
-			Vec3::new(player_transform.translation.x+attack_xpos, player_transform.translation.y+32., 0.),
-			//asize
-			Vec2::new(80.,32.),
-			//bpos
-			Vec3::new(enemy_transform.translation.x, enemy_transform.translation.y+32., 0.),
-			//bsize
-			Vec2::new(PLAYER_H/2., PLAYER_W/2.)
-		) {
-			println!("Enemy hit! Current health:");
-			player_send.send(CollideEvent(true,String::from("punch")));
-
-		}*/
 		let punch_collide_result = collide(
 			//apos
 			Vec3::new(player_transform.translation.x+attack_xpos, player_transform.translation.y+32., 2.),
@@ -1092,14 +1027,11 @@ pub fn attack(
 				Collision::Bottom => (),	// top and bottom not used for knockback effect
 			}
 		}
-
-
     }
-	if input.just_pressed(KeyCode::K)	// having to wait until the key is released feels clunky
-	//&& !input.pressed(KeyCode::D)	// maybe add a timer so the hitbox lasts for a set time and then you can
-	//&& !input.pressed(KeyCode::A)	// attack again after a "recovery window"
-	&& !(player_actions.blocking) 
-	&& !(player_actions.attacking) {	
+	if input.just_pressed(KeyCode::K)	// kick
+		&& !(player_actions.blocking) 
+		&& !(player_actions.attacking)
+	{	
 		player_actions.attacking = true;
 
         commands
@@ -1117,21 +1049,7 @@ pub fn attack(
 		})
         .insert(DespawnTimer(Timer::from_seconds(0.4,false)))
 		.insert(PlayerAttack);
-		/*if check_collision(
-			//apos
-			Vec3::new(player_transform.translation.x+attack_xpos, player_transform.translation.y-32., 0.),
-			//asize
-			Vec2::new(80.,32.),
-			//bpos
-			Vec3::new(enemy_transform.translation.x, enemy_transform.translation.y-32., 0.),
-			//bsize
-			Vec2::new(PLAYER_H/2., PLAYER_W/2.)
-		){
-			//enemy_stats.health -= 10.;
-			println!("Enemy hit! Current health:");
-			player_send.send(CollideEvent(true,String::from("kick")));
-
-		}*/
+		
 		let kick_collide_result = collide(
 			//apos
 			Vec3::new(player_transform.translation.x+attack_xpos, player_transform.translation.y-32., 2.),
@@ -1158,7 +1076,6 @@ pub fn attack(
 				Collision::Bottom => (),	// top and bottom not used for knockback effect
 			}
 		}
-
     }
 }
 
@@ -1178,18 +1095,6 @@ pub fn block(
 	}
 }
 
-pub fn remove_popup(
-	time: Res<Time>,
-	mut rmpopup: Query<(&mut DespawnTimer, &mut Visibility)>
-) {
-	for (mut timer, mut vis_map) in rmpopup.iter_mut() {
-		timer.tick(time.delta());
-		if timer.just_finished() {
-			vis_map.is_visible = false;
-		}
-	}
-}
-
 pub fn player_remove_attack(
 	time: Res<Time>,
 	mut attack_popup: Query<(&mut DespawnTimer, &mut Visibility), With<PlayerAttack>>,
@@ -1202,6 +1107,18 @@ pub fn player_remove_attack(
 		if timer.just_finished() {
 			vis_map.is_visible = false;
 			player_actions.attacking = false;
+		}
+	}
+}
+
+pub fn remove_popup(
+	time: Res<Time>,
+	mut rmpopup: Query<(&mut DespawnTimer, &mut Visibility)>
+) {
+	for (mut timer, mut vis_map) in rmpopup.iter_mut() {
+		timer.tick(time.delta());
+		if timer.just_finished() {
+			vis_map.is_visible = false;
 		}
 	}
 }

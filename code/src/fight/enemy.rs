@@ -1,3 +1,5 @@
+// module to contain all the enemy-specific fight functions
+
 use bevy::{
     prelude::*
 };
