@@ -80,6 +80,7 @@ fn main() {
 				.with_system(fight::collision_handle)
 				.with_system(fight::block)
 				.with_system(fight::player_remove_attack)
+				.with_system(fight::animate_background)
 		)
 		.add_system_set(
 			SystemSet::on_enter(GameState::Start)
