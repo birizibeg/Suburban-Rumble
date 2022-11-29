@@ -2,10 +2,13 @@ use bevy::{
 	prelude::*,
 	text::Text2dBounds,
 };
+mod AFFINParser;
+
 use super::ConvInputEvent;
 use super::ConvLossEvent;
 use super::ConvWinEvent;
 extern crate rust_stemmers;
+use AFFINParser::SentimentScore; 
 use rust_stemmers::{Algorithm, Stemmer};
 
 #[derive(Component)]
@@ -264,7 +267,7 @@ pub fn process_input(
                 } else  if word.to_string() == "veri" || word.to_string() == "pretti" {
                     multiplier = multiplier * 2;
                 } else {
-                    println!("Checking dictionary for {}", word);
+                    println!("Ch ecking dictionary for {}", word);
                     // Iterate through our dictionary and add the score if the word is found
                     for check in WORDS.iter() {
                         if &check.0 == word {
@@ -274,8 +277,12 @@ pub fn process_input(
                         }
                     }
                 }
+
                 
             } 
+            let sentiment_score = AFFINParser::generate_affin_scores(&simple_sentence);
+            println!("Sentiment Score: {}", sentiment_score.net_score);
+
         }
         
         unsafe {

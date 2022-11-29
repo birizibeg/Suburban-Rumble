@@ -5,6 +5,7 @@ use bevy::{
 
 mod fight;
 mod conversation;
+
 const WIN_W: f32 = 1280.;
 const WIN_H: f32 = 720.;
 
