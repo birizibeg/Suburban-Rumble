@@ -992,6 +992,7 @@ dependencies = [
  "bevy",
  "rand",
  "rust-stemmers",
+ "serde_json",
 ]
 
 [[package]]
