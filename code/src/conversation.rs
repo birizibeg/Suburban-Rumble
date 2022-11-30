@@ -101,10 +101,10 @@ pub fn setup_conversation(
     
     commands.spawn_bundle(SpriteBundle {
 		texture: asset_server.load("hero.png"),
-		transform: Transform::from_xyz(-500., -225., 1.),
+		transform: Transform::from_xyz(0., 0., 1.),
 		sprite: Sprite {
-            color: Color::WHITE,
-            custom_size: Some(Vec2::new(200., 200.)),
+            //color: Color::WHITE,
+            //custom_size: Some(Vec2::new(200., 200.)),
             ..default()
         },
 		..default()
@@ -112,7 +112,7 @@ pub fn setup_conversation(
 
 	commands.spawn_bundle(SpriteBundle {
 		texture: asset_server.load("CathyRobinson.png"),
-		transform: Transform::from_xyz(0., 0., 2.),
+		transform: Transform::from_xyz(0., 0., 1.),
 		sprite: Sprite {
             //color: Color::WHITE,
             //custom_size: Some(Vec2::new(200., 200.)),
@@ -120,6 +120,17 @@ pub fn setup_conversation(
         },
 		..default()
 	}).insert(Enemy{start_tolerance: 100, name: String::from("Catherine Robinson"), age: 27, job: String::from("Teacher"), description: String::from("nice")});
+
+    /*commands.spawn_bundle(SpriteBundle {
+		texture: asset_server.load("Billy Wickler.png"),
+		transform: Transform::from_xyz(0., 0., 2.),
+		sprite: Sprite {
+            //color: Color::WHITE,
+            //custom_size: Some(Vec2::new(200., 200.)),
+            ..default()
+        },
+		..default()
+	}).insert(Enemy{start_tolerance: 50, name: String::from("Billy Wickler"), age: 49, job: String::from("Teacher"), description: String::from("nice")});*/
 
 	let box_size = Vec2::new(700.0, 200.0);
     let box_position = Vec2::new(-45.0, -250.0);
@@ -267,7 +278,7 @@ pub fn process_input(
                 } else  if word.to_string() == "veri" || word.to_string() == "pretti" {
                     multiplier = multiplier * 2;
                 } else {
-                    println!("Ch ecking dictionary for {}", word);
+                    println!("Checking dictionary for {}", word);
                     // Iterate through our dictionary and add the score if the word is found
                     for check in WORDS.iter() {
                         if &check.0 == word {
