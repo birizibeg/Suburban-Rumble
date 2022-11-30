@@ -1372,12 +1372,12 @@ pub fn move_enemy(
 pub fn enemy_take_action(
 	time: Res<Time>,
 	mut player: Query<&mut Transform, (With<Player>, Without<Enemy>)>,
-	mut enemy: Query<(&mut Transform, &mut ActionTimer, &mut Actions), (With<Enemy>, Without<Player>)>,
-	// these last two are to pass to the punch or kick functions
+	mut enemy: Query<(&mut Transform, &mut ActionTimer, &mut Actions, &mut Sprite), (With<Enemy>, Without<Player>)>,
+	// these last three are to pass to the punch, kick, and block functions
 	enemy_send: EventWriter<CollideEvent>,
 	commands: Commands,
 ) {
-	let (enemy_transform, mut enemy_timer, enemy_actions) = enemy.single_mut();
+	let (enemy_transform, mut enemy_timer, mut enemy_actions, mut enemy_sprite) = enemy.single_mut();
 	let player_transform = player.single_mut();
 	let mut rng = rand::thread_rng();
 	let attack_length: f32 = 80.;
@@ -1394,6 +1394,10 @@ pub fn enemy_take_action(
 	}
 
 	enemy_timer.0.tick(time.delta());
+	if enemy_timer.0.finished() && enemy_actions.blocking {
+		enemy_unblock(&mut enemy_sprite, &mut enemy_actions);
+	}
+
 	if enemy_timer.0.finished() && (!enemy_actions.attacking && !enemy_actions.blocking) && enemy_within_range {
 		enemy_timer.0.reset();
 
@@ -1417,7 +1421,7 @@ pub fn enemy_take_action(
 				);
 			},
 			2 => {
-				enemy_block();
+				enemy_block(&mut enemy_sprite, &mut enemy_actions);
 			},
 			_ => info!("We should never get here..."),
 		}
@@ -1428,10 +1432,10 @@ pub fn enemy_punch(
 	mut enemy_send: EventWriter<CollideEvent>,
 	mut player: Query<&mut Transform, (With<Player>, Without<Enemy>)>,
 	mut commands: Commands, 
-	mut enemy: Query<(&mut Transform, &mut ActionTimer, &mut Actions), (With<Enemy>, Without<Player>)>,
+	mut enemy: Query<(&mut Transform, &mut ActionTimer, &mut Actions, &mut Sprite), (With<Enemy>, Without<Player>)>,
 ){
     let player_transform = player.single_mut();
-	let (enemy_transform, _enemy_timer, mut enemy_actions) = enemy.single_mut();
+	let (enemy_transform, _enemy_timer, mut enemy_actions, _enemy_sprite) = enemy.single_mut();
 	let mut attack_xpos = 60.;
 	if enemy_transform.translation.x > player_transform.translation.x {
 		 attack_xpos = -60.;
@@ -1489,10 +1493,10 @@ pub fn enemy_kick(
 	mut enemy_send: EventWriter<CollideEvent>,
 	mut player: Query<&mut Transform, (With<Player>, Without<Enemy>)>,
 	mut commands: Commands, 
-	mut enemy: Query<(&mut Transform, &mut ActionTimer, &mut Actions), (With<Enemy>, Without<Player>)>,
+	mut enemy: Query<(&mut Transform, &mut ActionTimer, &mut Actions, &mut Sprite), (With<Enemy>, Without<Player>)>,
 ){
     let player_transform = player.single_mut();
-	let (enemy_transform, _enemy_timer, mut enemy_actions) = enemy.single_mut();
+	let (enemy_transform, _enemy_timer, mut enemy_actions, _enemy_sprite) = enemy.single_mut();
 	let mut attack_xpos = 60.;
 	if enemy_transform.translation.x > player_transform.translation.x {
 		 attack_xpos = -60.;
@@ -1546,9 +1550,19 @@ pub fn enemy_kick(
 }
 
 pub fn enemy_block(
-
+	mut enemy_sprite: &mut Sprite,
+	mut enemy_actions: &mut Actions,
 ) {
-	info!("Enemy block!");
+	enemy_actions.blocking = true;
+	enemy_sprite.color = Color::MAROON;	// change enemy sprite color so we know the blocking is working
+}
+
+pub fn enemy_unblock(
+	mut enemy_sprite: &mut Sprite,
+	mut enemy_actions: &mut Actions,
+) {
+	enemy_actions.blocking = false;
+	enemy_sprite.color = Color::RED;
 }
 
 pub fn enemy_remove_attack(
