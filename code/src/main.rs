@@ -8,6 +8,7 @@ mod conversation;
 
 const WIN_W: f32 = 1280.;
 const WIN_H: f32 = 720.;
+static mut LEVEL: i8 = 1;
 
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
 enum GameState {
@@ -424,6 +425,9 @@ fn change_gamestate(
 
 ) {
 	if keys.pressed(KeyCode::Key1) {	// change GameState to Start
+		unsafe {
+			LEVEL = 1;
+		}
 			match game_state.set(GameState::Start) {
 				Ok(_) => info!("GameState: Start"),
 				Err(_) => (),
