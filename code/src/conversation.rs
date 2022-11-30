@@ -260,28 +260,6 @@ pub fn process_input(
                 let finished_word = &stemmer.stem(word).into_owned(); // Find the stem
                 simple_sentence.push(finished_word.to_string()); // Then add it to the simplified sentence
             }
-            // Once the sentence is simplified, search for the words
-            for word in &simple_sentence {
-                if word.to_string() == "not" {
-                    multiplier = multiplier * -1;
-                } else  if word.to_string() == "veri" || word.to_string() == "pretti" {
-                    multiplier = multiplier * 2;
-                } else {
-                    println!("Checking dictionary for {}", word);
-                    // Iterate through our dictionary and add the score if the word is found
-                    for check in WORDS.iter() {
-                        if &check.0 == word {
-                            score = score + &check.1 * multiplier;
-                            println!("Final score of sentence: {}", score);
-                            multiplier = 1;
-                        }
-                    }
-                }
-
-                
-            } 
-            let sentiment_score = AFFINParser::generate_affin_scores(&simple_sentence);
-            println!("Sentiment Score: {}", sentiment_score.net_score);
         }
         // Once the sentence is simplified, search for the words
         for word in &simple_sentence {
