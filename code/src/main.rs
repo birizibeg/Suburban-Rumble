@@ -74,13 +74,15 @@ fn main() {
 		.add_system_set(
 			SystemSet::on_update(GameState::Fight)
 				.label("fight")
+				.with_system(fight::animate_background)
 				.with_system(fight::move_player)
 				.with_system(fight::attack)
-				.with_system(fight::move_enemy)
-				.with_system(fight::collision_handle)
 				.with_system(fight::block)
 				.with_system(fight::player_remove_attack)
-				.with_system(fight::animate_background)
+				.with_system(fight::move_enemy)
+				.with_system(fight::enemy_take_action)
+				.with_system(fight::enemy_remove_attack)
+				.with_system(fight::collision_handle)
 		)
 		.add_system_set(
 			SystemSet::on_enter(GameState::Start)
