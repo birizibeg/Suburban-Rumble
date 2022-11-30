@@ -7,6 +7,7 @@ mod AFFINParser;
 use super::ConvInputEvent;
 use super::ConvLossEvent;
 use super::ConvWinEvent;
+use super::LEVEL;
 extern crate rust_stemmers;
 use AFFINParser::SentimentScore; 
 use rust_stemmers::{Algorithm, Stemmer};
@@ -34,7 +35,7 @@ pub struct Button;
 // stats struct to track tolerance for enemies
 #[derive(Component)]
 pub struct Enemy{
-	start_tolerance: i8,
+	start_tolerance: f64,
     name: String,
     age: i8,
     job: String,
@@ -44,7 +45,7 @@ pub struct Enemy{
 const NICE_RESPONSES: [&'static str;6] = ["Thank you!", "I really appreciate that!",
 "You're such a good neighbor!", "You're a life saver", "Thanks! I'll see you later.", "Have a good day!"];
 
-const MEAN_RESPONSES: [&'static str;6] = ["Why would you say that to me?", "You're a crazy person!!",
+const MEAN_RESPONSES: [&'static str;6] = ["Why would you say that to me?", "Why would you say that to me?",
 "I will literally call the police.", "Do you want to fight?!?!???!", "You're the worst neighbor EVER!", "You don't want to take it there!"];
 
 const NICE_GREETINGS: [&'static str;6] = ["Hello!", "How are you?", "I hope your day is going good so far!", 
@@ -52,7 +53,6 @@ const NICE_GREETINGS: [&'static str;6] = ["Hello!", "How are you?", "I hope your
 
 const MEAN_GREETINGS: [&'static str;6] = ["What is WRONG with you?", "Don't smile at me! You KNOW what you did.", "I can not stand you!", 
 "You're actually the worst neighbor ever!", "Why do you act like this?", "You're ruining my day!!"];
-struct Word(String, i8);
 
 // 0 - start (enemy prompt, wait for player prompt)
 // 1 - after player first response, fetch ai response
@@ -62,7 +62,6 @@ struct Word(String, i8);
 const MAX_TURNS: i32 = 4;
 const START_TURN: i32 = 0;
 static mut CUR_TURN: i32 = 0;
-static mut WORDS: Vec<Word> = Vec::new();
 
 // Spawn all entities to be used in the conversation part of the game
 pub fn setup_conversation(
@@ -71,17 +70,8 @@ pub fn setup_conversation(
 	asset_server: Res<AssetServer>,
 ){
     unsafe {
-        CUR_TURN = START_TURN;
-        println!("Current Turn: {}", CUR_TURN);
-        WORDS.push(Word("awesom".to_string(), 10));
-        WORDS.push(Word("good".to_string(), 10));
-        WORDS.push(Word("pretty".to_string(), 10));
-        WORDS.push(Word("yes".to_string(), 10));
-        WORDS.push(Word("yeah".to_string(), 10));
-        WORDS.push(Word("no".to_string(), -10));
-        WORDS.push(Word("stinki".to_string(), -10));
+       println!("Current level: {}", LEVEL); 
     }
-
     clear_color.0 = Color::NONE;
     let user_text_style = TextStyle {
 		font: asset_server.load("Fonts/Minecraft.ttf"),
@@ -119,7 +109,7 @@ pub fn setup_conversation(
             ..default()
         },
 		..default()
-	}).insert(Enemy{start_tolerance: 100, name: String::from("Catherine Robinson"), age: 27, job: String::from("Teacher"), description: String::from("nice")});
+	}).insert(Enemy{start_tolerance: 10.0, name: String::from("Catherine Robinson"), age: 27, job: String::from("Teacher"), description: String::from("nice")});
 
 	let box_size = Vec2::new(700.0, 200.0);
     let box_position = Vec2::new(-45.0, -250.0);
@@ -193,8 +183,9 @@ pub fn clear_conversation(
     commands.entity(hero_eid).despawn();
 	commands.entity(enemy_eid).despawn();
     commands.entity(background_eid).despawn();
-    unsafe{
-        WORDS = Vec::new();
+    unsafe {
+        CUR_TURN = 0;
+        LEVEL = LEVEL + 1;
     }
 }
 
@@ -237,8 +228,7 @@ pub fn process_input(
     mut enemy: Query<&mut Enemy>,
     //mut tolerances: Query<Enemy>>,
 ) {
-    let mut score = 0;
-    let mut multiplier = 1;
+    let mut multiplier: f64;
     let mut enemy = enemy.single_mut();
     let stemmer = Stemmer::create(Algorithm::English);
     let mut simple_sentence: Vec<String> = Vec::new();
@@ -246,56 +236,46 @@ pub fn process_input(
     let mut player_sent = true;
 
     for input in ev_reader.iter() {
+        multiplier = 1.0;
         // Get the input and do some string manipulation to make it easier to parse
         let mut string = input.0.to_string();
         string.make_ascii_lowercase();
         string = string.trim_end().to_string();
-        unsafe {
-            // Create a simple sentence by iterating through the words and pushing them to a vec
-            for words in string.split_whitespace(){
-                // If the word is not an article,
-                let word = words.trim_end_matches(","); // Trim off any potential commas
-                if word.to_string() != "a" && word.to_string() != "an" && word.to_string() != "the" {
-                    let finished_word = &stemmer.stem(word).into_owned(); // Find the stem
-                    simple_sentence.push(finished_word.to_string()); // Then add it to the simplified sentence
-                }
+        // Create a simple sentence by iterating through the words and pushing them to a vec
+        for words in string.split_whitespace(){
+            // If the word is not an article,
+            let word = words.trim_end_matches(","); // Trim off any potential commas
+            if word.to_string() != "a" && word.to_string() != "an" && word.to_string() != "the" {
+                let finished_word = &stemmer.stem(word).into_owned(); // Find the stem
+                simple_sentence.push(finished_word.to_string()); // Then add it to the simplified sentence
             }
-            // Once the sentence is simplified, search for the words
-            for word in &simple_sentence {
-                if word.to_string() == "not" {
-                    multiplier = multiplier * -1;
-                } else  if word.to_string() == "veri" || word.to_string() == "pretti" {
-                    multiplier = multiplier * 2;
-                } else {
-                    println!("Ch ecking dictionary for {}", word);
-                    // Iterate through our dictionary and add the score if the word is found
-                    for check in WORDS.iter() {
-                        if &check.0 == word {
-                            score = score + &check.1 * multiplier;
-                            println!("Final score of sentence: {}", score);
-                            multiplier = 1;
-                        }
-                    }
-                }
-
-                
-            } 
-            let sentiment_score = AFFINParser::generate_affin_scores(&simple_sentence);
-            println!("Sentiment Score: {}", sentiment_score.net_score);
-
         }
-        
-        unsafe {
-           enemy.start_tolerance = enemy.start_tolerance + score;
-            if enemy.start_tolerance <= 0 {
-                loss_writer.send(ConvLossEvent());
-            } else if score < 0 {
-                player_sent = false;
-            } else {
-                player_sent = true;
-                win_writer.send(ConvWinEvent());
+        // Once the sentence is simplified, search for the words
+        for word in &simple_sentence {
+            if word.to_string() == "not" {
+                multiplier = multiplier * -1.0;
+            } else  if word.to_string() == "veri" || word.to_string() == "pretti" {
+                multiplier = multiplier * 2.0;
             } 
-            
+        } 
+        let mut sentiment_score = AFFINParser::generate_affin_scores(&simple_sentence);
+        if sentiment_score.net_score == 0.0 {
+            sentiment_score.net_score = multiplier;
+        } else {
+            sentiment_score.net_score = sentiment_score.net_score * multiplier;
+        }
+        println!("Sentiment Score: {}", sentiment_score.net_score);
+        enemy.start_tolerance = enemy.start_tolerance + sentiment_score.net_score;
+        if enemy.start_tolerance <= 0.0 {
+            loss_writer.send(ConvLossEvent());
+        } else if enemy.start_tolerance >= 50.0 {
+            win_writer.send(ConvWinEvent());
+        } else if sentiment_score.net_score <= 0.0 {
+            player_sent = false;
+        } else {
+            player_sent = true;
+        }
+        unsafe {    
             if CUR_TURN <= MAX_TURNS {
                 CUR_TURN = CUR_TURN + 1;
                 //println!("Current Turn: {}", CUR_TURN);
