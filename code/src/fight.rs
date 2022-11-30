@@ -521,11 +521,11 @@ pub fn collision_handle(
 	mut event_receive: EventReader<CollideEvent>,
 	mut win_state: EventWriter<FightWinEvent>,
 	mut loss_state: EventWriter<FightLossEvent>,
-	mut player: Query<(&mut Transform, &mut Velocity, &mut Stats), With<Player>>,
-	mut enemy: Query<(&mut Transform, &mut Velocity, &mut Stats), (With<Enemy>, Without<Player>)>
+	mut player: Query<(&mut Transform, &mut Velocity, &mut Stats, &mut Actions), With<Player>>,
+	mut enemy: Query<(&mut Transform, &mut Velocity, &mut Stats, &mut Actions), (With<Enemy>, Without<Player>)>
 ){
-	let (mut player_transform, mut player_velocity, mut player_stats) = player.single_mut();
-	let (enemy_transform, mut enemy_velocity, mut enemy_stats) = enemy.single_mut();
+	let (mut player_transform, mut player_velocity, mut player_stats, player_actions) = player.single_mut();
+	let (enemy_transform, mut enemy_velocity, mut enemy_stats, enemy_actions) = enemy.single_mut();
 	for p in event_receive.iter(){
 		if p.0 == true {
 			if p.1 == "rightside" {
@@ -554,14 +554,26 @@ pub fn collision_handle(
 			} else if p.1 == "punchleft" {
 				// this handles punch collisions 
 				// The current healthbar entity is despawned and a new entity with updated health, size and pos is spawned 
-				enemy_velocity.velocity = enemy_velocity.velocity + Vec2::new(
-					700.,
-					0.,
-				);
-				if enemy_stats.health-PUNCHATTACK > 0.{ 
-					enemy_stats.health = enemy_stats.health-PUNCHATTACK;
+				if !enemy_actions.blocking {
+					enemy_velocity.velocity = enemy_velocity.velocity + Vec2::new(
+						700.,
+						0.,
+					);
+					if enemy_stats.health-PUNCHATTACK > 0.{ 
+						enemy_stats.health = enemy_stats.health-PUNCHATTACK;
+					} else {
+						enemy_stats.health = 0.;
+					}
 				} else {
-					enemy_stats.health = 0.;
+					enemy_velocity.velocity = enemy_velocity.velocity + Vec2::new(
+						350.,
+						0.,
+					);
+					if enemy_stats.health-(PUNCHATTACK/4.) > 0. {
+						enemy_stats.health = enemy_stats.health-(PUNCHATTACK/4.);
+					} else {
+						enemy_stats.health = 0.;
+					}
 				}
 				let enemy_healthbar_eid = enemy_healthbar_en.single();
 				let x_size = 5.*enemy_stats.health;
@@ -587,14 +599,26 @@ pub fn collision_handle(
 			} else if p.1 == "punchright" {
 				// this handles punch collisions 
 				// The current healthbar entity is despawned and a new entity with updated health, size and pos is spawned 
-				enemy_velocity.velocity = enemy_velocity.velocity + Vec2::new(
-					-700.,
-					0.,
-				);
-				if enemy_stats.health-PUNCHATTACK > 0.{ 
-					enemy_stats.health = enemy_stats.health-PUNCHATTACK;
+				if !enemy_actions.blocking {
+					enemy_velocity.velocity = enemy_velocity.velocity + Vec2::new(
+						-700.,
+						0.,
+					);
+					if enemy_stats.health-PUNCHATTACK > 0.{ 
+						enemy_stats.health = enemy_stats.health-PUNCHATTACK;
+					} else {
+						enemy_stats.health = 0.;
+					}
 				} else {
-					enemy_stats.health = 0.;
+					enemy_velocity.velocity = enemy_velocity.velocity + Vec2::new(
+						-350.,
+						0.,
+					);
+					if enemy_stats.health-(PUNCHATTACK/4.) > 0.{ 
+						enemy_stats.health = enemy_stats.health-(PUNCHATTACK/4.);
+					} else {
+						enemy_stats.health = 0.;
+					}
 				}
 				let enemy_healthbar_eid = enemy_healthbar_en.single();
 				let x_size = 5.*enemy_stats.health;
@@ -618,14 +642,26 @@ pub fn collision_handle(
 					win_state.send(FightWinEvent());	// enemy health has reached zero, player has won the fight
 				}
 			} else if p.1 == "kickleft" {
-				enemy_velocity.velocity = enemy_velocity.velocity + Vec2::new(
-					1000.,
-					0.,
-				);
-				if enemy_stats.health - KICKATTACK > 0. {
-					enemy_stats.health = enemy_stats.health-20.;
+				if !enemy_actions.blocking {
+					enemy_velocity.velocity = enemy_velocity.velocity + Vec2::new(
+						1000.,
+						0.,
+					);
+					if enemy_stats.health - KICKATTACK > 0. {
+						enemy_stats.health = enemy_stats.health-KICKATTACK;
+					} else {
+						enemy_stats.health = 0.;
+					}
 				} else {
-					enemy_stats.health = 0.;
+					enemy_velocity.velocity = enemy_velocity.velocity + Vec2::new(
+						500.,
+						0.,
+					);
+					if enemy_stats.health - (KICKATTACK/4.) > 0. {
+						enemy_stats.health = enemy_stats.health-(KICKATTACK/4.);
+					} else {
+						enemy_stats.health = 0.;
+					}
 				}
 				println!("Enemy health is {}",enemy_stats.health);
 				let enemy_healthbar_eid = enemy_healthbar_en.single();
@@ -650,14 +686,26 @@ pub fn collision_handle(
 					win_state.send(FightWinEvent());	// enemy health has reached zero, player has won the fight
 				}
 			} else if p.1 == "kickright" {
-				enemy_velocity.velocity = enemy_velocity.velocity + Vec2::new(
-					-1000.,
-					0.,
-				);
-				if enemy_stats.health - KICKATTACK > 0. {
-					enemy_stats.health = enemy_stats.health-20.;
+				if !enemy_actions.blocking {
+					enemy_velocity.velocity = enemy_velocity.velocity + Vec2::new(
+						-1000.,
+						0.,
+					);
+					if enemy_stats.health - KICKATTACK > 0. {
+						enemy_stats.health = enemy_stats.health-KICKATTACK;
+					} else {
+						enemy_stats.health = 0.;
+					}
 				} else {
-					enemy_stats.health = 0.;
+					enemy_velocity.velocity = enemy_velocity.velocity + Vec2::new(
+						-500.,
+						0.,
+					);
+					if enemy_stats.health - (KICKATTACK/4.) > 0. {
+						enemy_stats.health = enemy_stats.health-(KICKATTACK/4.);
+					} else {
+						enemy_stats.health = 0.;
+					}
 				}
 				println!("Enemy health is {}",enemy_stats.health);
 				let enemy_healthbar_eid = enemy_healthbar_en.single();
@@ -682,21 +730,32 @@ pub fn collision_handle(
 					win_state.send(FightWinEvent());	// enemy health has reached zero, player has won the fight
 				}
 			} else if p.1 == "enemy_punchleft" {
-				info!("enemy_punchleft");
 				// this handles punch collisions 
 				// The current healthbar entity is despawned and a new entity with updated health, size and pos is spawned 
-				player_velocity.velocity = player_velocity.velocity + Vec2::new(
-					700.,
-					0.,
-				);
-				if player_stats.health-PUNCHATTACK > 0.{ 
-					player_stats.health = player_stats.health-PUNCHATTACK;
+				if !player_actions.blocking {
+					player_velocity.velocity = player_velocity.velocity + Vec2::new(
+						700.,
+						0.,
+					);
+					if player_stats.health-PUNCHATTACK > 0.{ 
+						player_stats.health = player_stats.health-PUNCHATTACK;
+					} else {
+						player_stats.health = 0.;
+					}
 				} else {
-					player_stats.health = 0.;
+					player_velocity.velocity = player_velocity.velocity + Vec2::new(
+						350.,
+						0.,
+					);
+					if player_stats.health-(PUNCHATTACK/4.) > 0.{ 
+						player_stats.health = player_stats.health-(PUNCHATTACK/4.);
+					} else {
+						player_stats.health = 0.;
+					}
 				}
 				let player_healthbar_eid = player_healthbar_en.single();
 				let x_size = 5.*player_stats.health;
-				let x_pos = (crate::WIN_W/2. - 5.*player_stats.health/2.)-16.;
+				let x_pos = (-crate::WIN_W/2. + 5.*player_stats.health/2.)+16.;
 				commands.entity(player_healthbar_eid).despawn();
 				commands.spawn_bundle(SpriteBundle {
 					sprite: Sprite {
@@ -716,21 +775,32 @@ pub fn collision_handle(
 					loss_state.send(FightLossEvent());	// player health has reached zero, player has lost the fight
 				}
 			} else if p.1 == "enemy_punchright" {
-				info!("enemy_punchright");
 				// this handles punch collisions 
 				// The current healthbar entity is despawned and a new entity with updated health, size and pos is spawned 
-				player_velocity.velocity = player_velocity.velocity + Vec2::new(
-					-700.,
-					0.,
-				);
-				if player_stats.health-PUNCHATTACK > 0.{ 
-					player_stats.health = player_stats.health-PUNCHATTACK;
+				if !player_actions.blocking {
+					player_velocity.velocity = player_velocity.velocity + Vec2::new(
+						-700.,
+						0.,
+					);
+					if player_stats.health-PUNCHATTACK > 0.{ 
+						player_stats.health = player_stats.health-PUNCHATTACK;
+					} else {
+						player_stats.health = 0.;
+					}
 				} else {
-					player_stats.health = 0.;
+					player_velocity.velocity = player_velocity.velocity + Vec2::new(
+						-350.,
+						0.,
+					);
+					if player_stats.health-(PUNCHATTACK/4.) > 0.{ 
+						player_stats.health = player_stats.health-(PUNCHATTACK/4.);
+					} else {
+						player_stats.health = 0.;
+					}
 				}
 				let player_healthbar_eid = player_healthbar_en.single();
 				let x_size = 5.*player_stats.health;
-				let x_pos = (crate::WIN_W/2. - 5.*player_stats.health/2.)-16.;
+				let x_pos = (-crate::WIN_W/2. + 5.*player_stats.health/2.)+16.;
 				commands.entity(player_healthbar_eid).despawn();
 				commands.spawn_bundle(SpriteBundle {
 					sprite: Sprite {
@@ -750,20 +820,31 @@ pub fn collision_handle(
 					loss_state.send(FightLossEvent());	// player health has reached zero, player has lost the fight
 				}
 			} else if p.1 == "enemy_kickleft" {
-				info!("enemy_kickleft");
-				player_velocity.velocity = player_velocity.velocity + Vec2::new(
-					1000.,
-					0.,
-				);
-				if player_stats.health - KICKATTACK > 0. {
-					player_stats.health = player_stats.health-20.;
+				if !player_actions.blocking {
+					player_velocity.velocity = player_velocity.velocity + Vec2::new(
+						1000.,
+						0.,
+					);
+					if player_stats.health - KICKATTACK > 0. {
+						player_stats.health = player_stats.health-20.;
+					} else {
+						player_stats.health = 0.;
+					}
 				} else {
-					player_stats.health = 0.;
+					player_velocity.velocity = player_velocity.velocity + Vec2::new(
+						500.,
+						0.,
+					);
+					if player_stats.health - (KICKATTACK/4.) > 0. {
+						player_stats.health = player_stats.health-(KICKATTACK/4.);
+					} else {
+						player_stats.health = 0.;
+					}
 				}
 				println!("Player health is {}",player_stats.health);
 				let player_healthbar_eid = player_healthbar_en.single();
 				let x_size = 5.*player_stats.health;
-				let x_pos = (crate::WIN_W/2. - 5.*player_stats.health/2.)-16.;
+				let x_pos = (-crate::WIN_W/2. + 5.*player_stats.health/2.)+16.;
 				commands.entity(player_healthbar_eid).despawn();
 				commands.spawn_bundle(SpriteBundle {
 					sprite: Sprite {
@@ -783,20 +864,31 @@ pub fn collision_handle(
 					loss_state.send(FightLossEvent());	// player health has reached zero, player has lost the fight
 				}
 			} else if p.1 == "enemy_kickright" {
-				info!("enemy_kickright");
-				player_velocity.velocity = player_velocity.velocity + Vec2::new(
-					-1000.,
-					0.,
-				);
-				if player_stats.health - KICKATTACK > 0. {
-					player_stats.health = player_stats.health-20.;
+				if !player_actions.blocking {
+					player_velocity.velocity = player_velocity.velocity + Vec2::new(
+						-1000.,
+						0.,
+					);
+					if player_stats.health - KICKATTACK > 0. {
+						player_stats.health = player_stats.health-20.;
+					} else {
+						player_stats.health = 0.;
+					}
 				} else {
-					player_stats.health = 0.;
+					player_velocity.velocity = player_velocity.velocity + Vec2::new(
+						-500.,
+						0.,
+					);
+					if player_stats.health - (KICKATTACK/4.) > 0. {
+						player_stats.health = player_stats.health-(KICKATTACK/4.);
+					} else {
+						player_stats.health = 0.;
+					}
 				}
 				println!("Player health is {}",player_stats.health);
 				let player_healthbar_eid = player_healthbar_en.single();
 				let x_size = 5.*player_stats.health;
-				let x_pos = (crate::WIN_W/2. - 5.*player_stats.health/2.)-16.;
+				let x_pos = (-crate::WIN_W/2. + 5.*player_stats.health/2.)+16.;
 				commands.entity(player_healthbar_eid).despawn();
 				commands.spawn_bundle(SpriteBundle {
 					sprite: Sprite {
@@ -1104,7 +1196,8 @@ pub fn move_enemy(
 	}
 }
 
-pub fn enemy_collision_handle(
+// thought we would need this but turns out we don't as of rn since i just handle the enemy attacks in the other collision_handle function
+/*pub fn enemy_collision_handle(
 	mut commands: Commands,
 	player_healthbar_en: Query<Entity, (With<Player>,With<HealthBarTop>)>,
 	mut lose_state: EventWriter<FightLossEvent>,
@@ -1274,7 +1367,7 @@ pub fn enemy_collision_handle(
 			  	}
 			}
 		}
-}
+}*/
 
 pub fn enemy_take_action(
 	time: Res<Time>,
