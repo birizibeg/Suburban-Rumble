@@ -7,7 +7,7 @@ mod AFFINParser;
 use super::ConvInputEvent;
 use super::ConvLossEvent;
 use super::ConvWinEvent;
-use super::LEVEL;
+use super::Level;
 extern crate rust_stemmers;
 use AFFINParser::SentimentScore; 
 use rust_stemmers::{Algorithm, Stemmer};
@@ -54,6 +54,10 @@ const NICE_GREETINGS: [&'static str;6] = ["Hello!", "How are you?", "I hope your
 const MEAN_GREETINGS: [&'static str;6] = ["What is WRONG with you?", "Don't smile at me! You KNOW what you did.", "I can not stand you!", 
 "You're actually the worst neighbor ever!", "Why do you act like this?", "You're ruining my day!!"];
 
+const NEGATOR_WORDS: [&'static str;8] = ["not", "don't", "dont", "neither","never","seldom", "nevermore","little"];
+const EMPHASIZING_WORDS: [&'static str;17] = ["veri", "pretti", "extrem", "vast", "huge", "especi", "over", 
+"exceed", "extra", "immens", "tremend", "excess", "great", "genuin", "realli", "super", "truli"];
+
 // 0 - start (enemy prompt, wait for player prompt)
 // 1 - after player first response, fetch ai response
 // 2 - after player second response, fetch ai response
@@ -62,15 +66,19 @@ const MEAN_GREETINGS: [&'static str;6] = ["What is WRONG with you?", "Don't smil
 const MAX_TURNS: i32 = 4;
 const START_TURN: i32 = 0;
 static mut CUR_TURN: i32 = 0;
+static mut CHECK_LEVEL: i32 = 1;
 
 // Spawn all entities to be used in the conversation part of the game
 pub fn setup_conversation(
 	mut commands: Commands,
 	mut clear_color: ResMut<ClearColor>, 
 	asset_server: Res<AssetServer>,
+    mut level: ResMut<State<Level>>,
+
 ){
     unsafe {
-       println!("Current level: {}", LEVEL); 
+       println!("Current level: {}", CHECK_LEVEL); 
+       CUR_TURN = 0; //reinitialize current # of turns
     }
     clear_color.0 = Color::NONE;
     let user_text_style = TextStyle {
@@ -83,6 +91,8 @@ pub fn setup_conversation(
         font_size: 40.0,
         color: Color::BLACK
     };
+
+    // SPAWN THE BACKGROUND SCREEN
 
     commands .spawn_bundle(SpriteBundle { 
         texture: asset_server.load("conversationscreen.png"), 
@@ -100,31 +110,12 @@ pub fn setup_conversation(
 		..default()
 	}).insert(Hero);
 
-	commands.spawn_bundle(SpriteBundle {
-		texture: asset_server.load("CathyRobinson.png"),
-		transform: Transform::from_xyz(0., 0., 1.),
-		sprite: Sprite {
-            //color: Color::WHITE,
-            //custom_size: Some(Vec2::new(200., 200.)),
-            ..default()
-        },
-		..default()
-	}).insert(Enemy{start_tolerance: 10.0, name: String::from("Catherine Robinson"), age: 27, job: String::from("Teacher"), description: String::from("nice")});
-
-    /*commands.spawn_bundle(SpriteBundle {
-		texture: asset_server.load("Billy Wickler.png"),
-		transform: Transform::from_xyz(0., 0., 2.),
-		sprite: Sprite {
-            //color: Color::WHITE,
-            //custom_size: Some(Vec2::new(200., 200.)),
-            ..default()
-        },
-		..default()
-	}).insert(Enemy{start_tolerance: 50, name: String::from("Billy Wickler"), age: 49, job: String::from("Teacher"), description: String::from("nice")});*/
-
 	let box_size = Vec2::new(700.0, 200.0);
     let box_position = Vec2::new(-45.0, -250.0);
     let box_position_two = Vec2::new(45.0, 175.0);
+
+
+    //SPAWN THE DIALOGUE BOXES
 
     commands.spawn_bundle(SpriteBundle {
         sprite: Sprite {
@@ -146,19 +137,6 @@ pub fn setup_conversation(
         ..default()
     }).insert(DialogueBox);
 
-    commands.spawn_bundle(Text2dBundle {
-        text: Text::from_section("Excuse me neighbor, can I borrow some sugar?", enemy_text_style),
-        text_2d_bounds: Text2dBounds {
-            size: box_size,
-        },
-        transform: Transform::from_xyz(
-            box_position_two.x - box_size.x / 2.0,
-            box_position_two.y + box_size.y / 2.0,
-            1.0,
-        ),
-        ..default()
-    }).insert(DialogueBox)
-    .insert(EnemyDialogue);
     
     commands.spawn_bundle(Text2dBundle {
         text: Text::from_section("Type your response", user_text_style),
@@ -174,6 +152,133 @@ pub fn setup_conversation(
     }).insert(DialogueBox)
     .insert(UserInput);
 	//info!("Setting Up: GameState: Conversation");
+    
+    match level.current(){
+        Level::Level1 =>{
+            commands.spawn_bundle(SpriteBundle {
+                texture: asset_server.load("CathyRobinson.png"),
+                transform: Transform::from_xyz(0., 0., 1.),
+                sprite: Sprite {
+                    //color: Color::WHITE,
+                    //custom_size: Some(Vec2::new(200., 200.)),
+                    ..default()
+                },
+                ..default()
+            }).insert(Enemy{start_tolerance: 100., name: String::from("Catherine Robinson"), age: 27, job: String::from("Teacher"), description: String::from("nice")});
+            
+            commands.spawn_bundle(Text2dBundle {
+                text: Text::from_section("Excuse me neighbor, can I borrow some sugar?", enemy_text_style),
+                text_2d_bounds: Text2dBounds {
+                    size: box_size,
+                },
+                transform: Transform::from_xyz(
+                    box_position_two.x - box_size.x / 2.0,
+                    box_position_two.y + box_size.y / 2.0,
+                    1.0,
+                ),
+                ..default()
+            }).insert(DialogueBox)
+            .insert(EnemyDialogue);			
+		}
+		
+        Level::Level2 =>{
+            commands.spawn_bundle(SpriteBundle {
+                texture: asset_server.load("BillyWickler.png"),
+                transform: Transform::from_xyz(0., 0., 1.),
+                sprite: Sprite {
+                    ..default()
+                },
+                ..default()
+            }).insert(Enemy{start_tolerance: 50., name: String::from("Billy Wickler"), age: 49, job: String::from("Cowboy Rancher"), description: String::from("brash")});
+            
+            commands.spawn_bundle(Text2dBundle {
+                text: Text::from_section("Listen here, my dog ran away earlier and I know you have him.", enemy_text_style),
+                text_2d_bounds: Text2dBounds {
+                    size: box_size,
+                },
+                transform: Transform::from_xyz(
+                    box_position_two.x - box_size.x / 2.0,
+                    box_position_two.y + box_size.y / 2.0,
+                    1.0,
+                ),
+                ..default()
+            }).insert(DialogueBox)
+            .insert(EnemyDialogue);
+        }
+		
+        Level::Level3 =>{
+            commands.spawn_bundle(SpriteBundle {
+                texture: asset_server.load("GloriaBrown.png"),
+                transform: Transform::from_xyz(0., 0., 1.),
+                sprite: Sprite {
+                    ..default()
+                },
+                ..default()
+            }).insert(Enemy{start_tolerance: 70., name: String::from("Gloria Brown"), age: 72, job: String::from("Retired Library Manager"), description: String::from("blunt")});
+            
+            commands.spawn_bundle(Text2dBundle {
+                text: Text::from_section("I need someone to read to me", enemy_text_style),
+                text_2d_bounds: Text2dBounds {
+                    size: box_size,
+                },
+                transform: Transform::from_xyz(
+                    box_position_two.x - box_size.x / 2.0,
+                    box_position_two.y + box_size.y / 2.0,
+                    1.0,
+                ),
+                ..default()
+            }).insert(DialogueBox)
+            .insert(EnemyDialogue);
+        }
+		Level::Level4 =>{
+            commands.spawn_bundle(SpriteBundle {
+                texture: asset_server.load("JeffreyMadden.png"),
+                transform: Transform::from_xyz(0., 0., 1.),
+                sprite: Sprite {
+                    ..default()
+                },
+                ..default()
+            }).insert(Enemy{start_tolerance: 30., name: String::from("Jeffrey Madden"), age: 34, job: String::from("Stockbroker"), description: String::from("stressed")});
+            commands.spawn_bundle(Text2dBundle {
+                text: Text::from_section("You need to move your car NOW, I'm having a party and it's blocking the driveway", enemy_text_style),
+                text_2d_bounds: Text2dBounds {
+                    size: box_size,
+                },
+                transform: Transform::from_xyz(
+                    box_position_two.x - box_size.x / 2.0,
+                    box_position_two.y + box_size.y / 2.0,
+                    1.0,
+                ),
+                ..default()
+            }).insert(DialogueBox)
+            .insert(EnemyDialogue);
+        }
+        Level::Level5 =>{
+            commands.spawn_bundle(SpriteBundle {
+                texture: asset_server.load("KarenMartinez.png"),
+                transform: Transform::from_xyz(0., 0., 1.),
+                sprite: Sprite {
+                    ..default()
+                },
+                ..default()
+            }).insert(Enemy{start_tolerance: 10., name: String::from("Katie Martinez"), age: 42, job: String::from("Mom"), description: String::from("mean")});
+            
+            commands.spawn_bundle(Text2dBundle {
+                text: Text::from_section("Why are you ALWAYS having people over? Is it safe to have all these strangers in a family-friendly neighborhood?", enemy_text_style),
+                text_2d_bounds: Text2dBounds {
+                    size: box_size,
+                },
+                transform: Transform::from_xyz(
+                    box_position_two.x - box_size.x / 2.0,
+                    box_position_two.y + box_size.y / 2.0,
+                    1.0,
+                ),
+                ..default()
+            }).insert(DialogueBox)
+            .insert(EnemyDialogue);
+        }
+    }
+
 }
 
 // Despawns every entity used in the conversation state that is not also in fight or credits
@@ -194,10 +299,6 @@ pub fn clear_conversation(
     commands.entity(hero_eid).despawn();
 	commands.entity(enemy_eid).despawn();
     commands.entity(background_eid).despawn();
-    unsafe {
-        CUR_TURN = 0;
-        LEVEL = LEVEL + 1;
-    }
 }
 
 // This takes the user's input and then prints every character onto the window using a text box
@@ -237,10 +338,11 @@ pub fn process_input(
     mut win_writer: EventWriter<ConvWinEvent>,
     mut enemy_dialogue: Query<&mut Text, With<EnemyDialogue>>,
     mut enemy: Query<&mut Enemy>,
-    //mut tolerances: Query<Enemy>>,
 ) {
     let mut multiplier: f64;
     let mut enemy = enemy.single_mut();
+    let mut startTol = enemy.start_tolerance;
+    let mut curTol = startTol;
     let stemmer = Stemmer::create(Algorithm::English);
     let mut simple_sentence: Vec<String> = Vec::new();
     let mut enem_dlg = enemy_dialogue.single_mut();
@@ -263,11 +365,25 @@ pub fn process_input(
         }
         // Once the sentence is simplified, search for the words
         for word in &simple_sentence {
-            if word.to_string() == "not" {
-                multiplier = multiplier * -1.0;
-            } else  if word.to_string() == "veri" || word.to_string() == "pretti" {
-                multiplier = multiplier * 2.0;
-            } 
+            let mut word_was_neg = false;
+            //check if the word is present in our NEGATOR array
+            for negativeWord in NEGATOR_WORDS{
+                if(word.to_string() == negativeWord){
+                    multiplier = multiplier * -1.0;
+                    word_was_neg = true;
+                    println!("word was negative");
+                }
+            }
+            if(!word_was_neg){ //the word was not negative so check it for emphasis
+                println!("This is the word we're on {}", word.to_string());
+                for emphasis in EMPHASIZING_WORDS{
+                    if(word.to_string() == emphasis){
+                        multiplier = multiplier * 2.0;
+                        println!("emphasizer used");
+                    }
+                }
+
+            }
         } 
         let mut sentiment_score = AFFINParser::generate_affin_scores(&simple_sentence);
         if sentiment_score.net_score == 0.0 {
@@ -276,27 +392,39 @@ pub fn process_input(
             sentiment_score.net_score = sentiment_score.net_score * multiplier;
         }
         println!("Sentiment Score: {}", sentiment_score.net_score);
-        enemy.start_tolerance = enemy.start_tolerance + sentiment_score.net_score;
-        if enemy.start_tolerance <= 0.0 {
+        //enemy.start_tolerance = enemy.start_tolerance + sentiment_score.net_score;
+        curTol = curTol + sentiment_score.net_score;
+        println!("This is current tol {}", curTol);
+        
+        
+        //if the enemy has no more tolerance
+        if curTol <= 0.0 {
             loss_writer.send(ConvLossEvent());
-        } else if enemy.start_tolerance >= 50.0 {
+         }else if curTol >= startTol*2.0 {  //the enemy is so satisfied, the level was won
+            //let enemy_resp = "You know what? I love you! Have a great day.";
+            //enem_dlg.sections[0].value = enemy_resp.to_string();
             win_writer.send(ConvWinEvent());
-        } else if sentiment_score.net_score <= 0.0 {
+         }else if sentiment_score.net_score <= 0.0 {
             player_sent = false;
         } else {
             player_sent = true;
         }
+        
         unsafe {    
+            //IF WE ARE NOT OUT OF TURNS, INCREMENT TURNS
             if CUR_TURN <= MAX_TURNS {
                 CUR_TURN = CUR_TURN + 1;
                 //println!("Current Turn: {}", CUR_TURN);
             }
-            else{ // TODO: CASE REACHED FINAL TURN -- NEEDS TO BE HANDLED
-                //println!("OUT OF RESPONSES: CONV PHASE OVER");
+            //CASE REACHED FINAL TURN AND PLAYER DIDN'T TRIGGER FIGHT,BUT ENEMY TOLERANCE LESS THAN HALF OF ORIGINAL
+            else if (curTol <= (startTol/2.)) { 
                 loss_writer.send(ConvLossEvent());
             }
+            //MAX TURNS REACHED AND ENEMY IS MORE THAN HALF CONTENT, LEVEL WON
+            else{
+                win_writer.send(ConvWinEvent());
+            }
             let enemy_resp: &str;
-            //println!("player sentiment good: {}", PLAYER_SENT);
             if player_sent {
                 enemy_resp = NICE_RESPONSES[CUR_TURN as usize];
             } else {
