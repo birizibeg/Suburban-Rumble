@@ -48,12 +48,6 @@ const NICE_RESPONSES: [&'static str;6] = ["Thank you!", "I really appreciate tha
 const MEAN_RESPONSES: [&'static str;6] = ["Why would you say that to me?", "Why would you say that to me?",
 "I will literally call the police.", "Do you want to fight?!?!???!", "You're the worst neighbor EVER!", "You don't want to take it there!"];
 
-const NICE_GREETINGS: [&'static str;6] = ["Hello!", "How are you?", "I hope your day is going good so far!", 
-"How is your day going?", "Long time, no see! How are you?", "How's it going?"];
-
-const MEAN_GREETINGS: [&'static str;6] = ["What is WRONG with you?", "Don't smile at me! You KNOW what you did.", "I can not stand you!", 
-"You're actually the worst neighbor ever!", "Why do you act like this?", "You're ruining my day!!"];
-
 const NEGATOR_WORDS: [&'static str;8] = ["not", "don't", "dont", "neither","never","seldom", "nevermore","little"];
 const EMPHASIZING_WORDS: [&'static str;17] = ["veri", "pretti", "extrem", "vast", "huge", "especi", "over", 
 "exceed", "extra", "immens", "tremend", "excess", "great", "genuin", "realli", "super", "truli"];
@@ -64,7 +58,6 @@ const EMPHASIZING_WORDS: [&'static str;17] = ["veri", "pretti", "extrem", "vast"
 // etc.. 
 // FINAL TURN - after player final response, return fight or not
 const MAX_TURNS: i32 = 4;
-const START_TURN: i32 = 0;
 static mut CUR_TURN: i32 = 0;
 static mut CHECK_LEVEL: i32 = 1;
 
@@ -73,7 +66,7 @@ pub fn setup_conversation(
 	mut commands: Commands,
 	mut clear_color: ResMut<ClearColor>, 
 	asset_server: Res<AssetServer>,
-    mut level: ResMut<State<Level>>,
+    level: ResMut<State<Level>>,
 
 ){
     unsafe {
@@ -340,9 +333,9 @@ pub fn process_input(
     mut enemy: Query<&mut Enemy>,
 ) {
     let mut multiplier: f64;
-    let mut enemy = enemy.single_mut();
-    let mut startTol = enemy.start_tolerance;
-    let mut curTol = startTol;
+    let enemy = enemy.single_mut();
+    let start_tol = enemy.start_tolerance;
+    let mut cur_tol = start_tol;
     let stemmer = Stemmer::create(Algorithm::English);
     let mut simple_sentence: Vec<String> = Vec::new();
     let mut enem_dlg = enemy_dialogue.single_mut();
@@ -367,17 +360,17 @@ pub fn process_input(
         for word in &simple_sentence {
             let mut word_was_neg = false;
             //check if the word is present in our NEGATOR array
-            for negativeWord in NEGATOR_WORDS{
-                if(word.to_string() == negativeWord){
+            for negative_word in NEGATOR_WORDS{
+                if word.to_string() == negative_word {
                     multiplier = multiplier * -1.0;
                     word_was_neg = true;
                     println!("word was negative");
                 }
             }
-            if(!word_was_neg){ //the word was not negative so check it for emphasis
+            if !word_was_neg{ //the word was not negative so check it for emphasis
                 println!("This is the word we're on {}", word.to_string());
                 for emphasis in EMPHASIZING_WORDS{
-                    if(word.to_string() == emphasis){
+                    if word.to_string() == emphasis {
                         multiplier = multiplier * 2.0;
                         println!("emphasizer used");
                     }
@@ -393,14 +386,14 @@ pub fn process_input(
         }
         println!("Sentiment Score: {}", sentiment_score.net_score);
         //enemy.start_tolerance = enemy.start_tolerance + sentiment_score.net_score;
-        curTol = curTol + sentiment_score.net_score;
-        println!("This is current tol {}", curTol);
+        cur_tol = cur_tol + sentiment_score.net_score;
+        println!("This is current tol {}", cur_tol);
         
         
         //if the enemy has no more tolerance
-        if curTol <= 0.0 {
+        if cur_tol <= 0.0 {
             loss_writer.send(ConvLossEvent());
-         }else if curTol >= startTol*2.0 {  //the enemy is so satisfied, the level was won
+         }else if cur_tol >= start_tol*2.0 {  //the enemy is so satisfied, the level was won
             //let enemy_resp = "You know what? I love you! Have a great day.";
             //enem_dlg.sections[0].value = enemy_resp.to_string();
             win_writer.send(ConvWinEvent());
@@ -417,7 +410,7 @@ pub fn process_input(
                 //println!("Current Turn: {}", CUR_TURN);
             }
             //CASE REACHED FINAL TURN AND PLAYER DIDN'T TRIGGER FIGHT,BUT ENEMY TOLERANCE LESS THAN HALF OF ORIGINAL
-            else if (curTol <= (startTol/2.)) { 
+            else if cur_tol <= (start_tol/2.) { 
                 loss_writer.send(ConvLossEvent());
             }
             //MAX TURNS REACHED AND ENEMY IS MORE THAN HALF CONTENT, LEVEL WON
