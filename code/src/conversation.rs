@@ -36,6 +36,7 @@ pub struct Button;
 #[derive(Component)]
 pub struct Enemy{
 	start_tolerance: f64,
+    cur_tol: f64,
     name: String,
     age: i8,
     job: String,
@@ -157,7 +158,7 @@ pub fn setup_conversation(
                     ..default()
                 },
                 ..default()
-            }).insert(Enemy{start_tolerance: 100., name: String::from("Catherine Robinson"), age: 27, job: String::from("Teacher"), description: String::from("nice")});
+            }).insert(Enemy{start_tolerance: 100., cur_tol: 100., name: String::from("Catherine Robinson"), age: 27, job: String::from("Teacher"), description: String::from("nice")});
             
             commands.spawn_bundle(Text2dBundle {
                 text: Text::from_section("Excuse me neighbor, can I borrow some sugar?", enemy_text_style),
@@ -182,7 +183,7 @@ pub fn setup_conversation(
                     ..default()
                 },
                 ..default()
-            }).insert(Enemy{start_tolerance: 50., name: String::from("Billy Wickler"), age: 49, job: String::from("Cowboy Rancher"), description: String::from("brash")});
+            }).insert(Enemy{start_tolerance: 50., cur_tol: 50., name: String::from("Billy Wickler"), age: 49, job: String::from("Cowboy Rancher"), description: String::from("brash")});
             
             commands.spawn_bundle(Text2dBundle {
                 text: Text::from_section("Listen here, my dog ran away earlier and I know you have him.", enemy_text_style),
@@ -207,7 +208,7 @@ pub fn setup_conversation(
                     ..default()
                 },
                 ..default()
-            }).insert(Enemy{start_tolerance: 70., name: String::from("Gloria Brown"), age: 72, job: String::from("Retired Library Manager"), description: String::from("blunt")});
+            }).insert(Enemy{start_tolerance: 70., cur_tol: 70., name: String::from("Gloria Brown"), age: 72, job: String::from("Retired Library Manager"), description: String::from("blunt")});
             
             commands.spawn_bundle(Text2dBundle {
                 text: Text::from_section("I need someone to read to me", enemy_text_style),
@@ -231,7 +232,7 @@ pub fn setup_conversation(
                     ..default()
                 },
                 ..default()
-            }).insert(Enemy{start_tolerance: 30., name: String::from("Jeffrey Madden"), age: 34, job: String::from("Stockbroker"), description: String::from("stressed")});
+            }).insert(Enemy{start_tolerance: 30., cur_tol: 30., name: String::from("Jeffrey Madden"), age: 34, job: String::from("Stockbroker"), description: String::from("stressed")});
             commands.spawn_bundle(Text2dBundle {
                 text: Text::from_section("You need to move your car NOW, I'm having a party and it's blocking the driveway", enemy_text_style),
                 text_2d_bounds: Text2dBounds {
@@ -254,7 +255,7 @@ pub fn setup_conversation(
                     ..default()
                 },
                 ..default()
-            }).insert(Enemy{start_tolerance: 10., name: String::from("Katie Martinez"), age: 42, job: String::from("Mom"), description: String::from("mean")});
+            }).insert(Enemy{start_tolerance: 10., cur_tol: 10., name: String::from("Katie Martinez"), age: 42, job: String::from("Mom"), description: String::from("mean")});
             
             commands.spawn_bundle(Text2dBundle {
                 text: Text::from_section("Why are you ALWAYS having people over? Is it safe to have all these strangers in a family-friendly neighborhood?", enemy_text_style),
@@ -333,9 +334,9 @@ pub fn process_input(
     mut enemy: Query<&mut Enemy>,
 ) {
     let mut multiplier: f64;
-    let enemy = enemy.single_mut();
+    let mut enemy = enemy.single_mut();
+    let mut cur_tol = enemy.cur_tol;
     let start_tol = enemy.start_tolerance;
-    let mut cur_tol = start_tol;
     let stemmer = Stemmer::create(Algorithm::English);
     let mut simple_sentence: Vec<String> = Vec::new();
     let mut enem_dlg = enemy_dialogue.single_mut();
@@ -364,15 +365,12 @@ pub fn process_input(
                 if word.to_string() == negative_word {
                     multiplier = multiplier * -1.0;
                     word_was_neg = true;
-                    println!("word was negative");
                 }
             }
             if !word_was_neg{ //the word was not negative so check it for emphasis
-                println!("This is the word we're on {}", word.to_string());
                 for emphasis in EMPHASIZING_WORDS{
                     if word.to_string() == emphasis {
                         multiplier = multiplier * 2.0;
-                        println!("emphasizer used");
                     }
                 }
 
@@ -384,15 +382,14 @@ pub fn process_input(
         } else {
             sentiment_score.net_score = sentiment_score.net_score * multiplier;
         }
-        println!("Sentiment Score: {}", sentiment_score.net_score);
         //enemy.start_tolerance = enemy.start_tolerance + sentiment_score.net_score;
         cur_tol = cur_tol + sentiment_score.net_score;
-        println!("This is current tol {}", cur_tol);
-        
+        enemy.cur_tol = cur_tol;        
         
         //if the enemy has no more tolerance
         if cur_tol <= 0.0 {
             loss_writer.send(ConvLossEvent());
+            // TODO: Fix this so that it checks correctly
          }else if cur_tol >= start_tol*2.0 {  //the enemy is so satisfied, the level was won
             //let enemy_resp = "You know what? I love you! Have a great day.";
             //enem_dlg.sections[0].value = enemy_resp.to_string();
@@ -410,6 +407,7 @@ pub fn process_input(
                 //println!("Current Turn: {}", CUR_TURN);
             }
             //CASE REACHED FINAL TURN AND PLAYER DIDN'T TRIGGER FIGHT,BUT ENEMY TOLERANCE LESS THAN HALF OF ORIGINAL
+            // TODO: Fix this so it checks correctly
             else if cur_tol <= (start_tol/2.) { 
                 loss_writer.send(ConvLossEvent());
             }
