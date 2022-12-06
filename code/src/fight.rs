@@ -1,4 +1,5 @@
 use rand::Rng;
+use rand::seq::IteratorRandom;
 use bevy::{
     prelude::*
 };
@@ -7,6 +8,7 @@ use bevy::sprite::collide_aabb::Collision;
 use super::CollideEvent;
 use super::FightWinEvent;
 use super::FightLossEvent;
+use super::Level;
 
 const PLAYER_W: f32 = 64.;
 const PLAYER_H: f32 = 128.;
@@ -1372,12 +1374,13 @@ pub fn move_enemy(
 pub fn enemy_take_action(
 	time: Res<Time>,
 	mut player: Query<&mut Transform, (With<Player>, Without<Enemy>)>,
-	mut enemy: Query<(&mut Transform, &mut ActionTimer, &mut Actions, &mut Sprite), (With<Enemy>, Without<Player>)>,
+	mut enemy: Query<(&mut Transform, &mut ActionTimer, &mut Actions, &mut Sprite, & mut Stats), (With<Enemy>, Without<Player>)>,
 	// these last three are to pass to the punch, kick, and block functions
 	enemy_send: EventWriter<CollideEvent>,
 	commands: Commands,
+	level: ResMut<State<Level>>,
 ) {
-	let (enemy_transform, mut enemy_timer, mut enemy_actions, mut enemy_sprite) = enemy.single_mut();
+	let (enemy_transform, mut enemy_timer, mut enemy_actions, mut enemy_sprite,mut enemy_stats) = enemy.single_mut();
 	let player_transform = player.single_mut();
 	let mut rng = rand::thread_rng();
 	let attack_length: f32 = 80.;
@@ -1402,7 +1405,45 @@ pub fn enemy_take_action(
 		enemy_timer.0.reset();
 
 		// choose an action for the enemy to take (punch, kick, or block)
-		let next_choice = rng.gen_range(0..3);	// generate 0, 1, or 2 since we have 3 options
+		let mut next_choice = rng.gen_range(0..3);	// generate 0, 1, or 2 since we have 3 options
+		match level.current(){
+			Level::Level1 =>{
+				if(enemy_stats.health < 20.0){
+					let choices=[0,0,0,1,1,1,2];
+					 next_choice = choices.into_iter().choose(&mut rng).unwrap();	// generate 0, 1, or 2 since we have 3 options
+				  }
+			}
+			Level::Level2 =>{
+				if(enemy_stats.health < 30.0){
+					let choices=[0,0,0,1,1,1,2];
+					 next_choice = choices.into_iter().choose(&mut rng).unwrap();	// generate 0, 1, or 2 since we have 3 options
+				  }
+			}
+			Level::Level3 =>{
+				if(enemy_stats.health < 50.0){
+					enemy_timer.0=Timer::from_seconds(0.1, false);
+					let choices=[0,0,0,1,1,1,2];
+					 next_choice = choices.into_iter().choose(&mut rng).unwrap();	// generate 0, 1, or 2 since we have 3 options
+				  }
+			}
+			Level::Level4 =>{
+				enemy_timer.0=Timer::from_seconds(0.01, false);
+				if(enemy_stats.health < 60.0){
+					let choices=[0,0,0,1,1,1,2];
+					 next_choice = choices.into_iter().choose(&mut rng).unwrap();	// generate 0, 1, or 2 since we have 3 options
+				  }
+
+			}
+			Level::Level5 =>{
+				enemy_timer.0=Timer::from_seconds(0.01, false);
+				if(enemy_stats.health < 70.0){
+					let choices=[0,0,0,1,1,1,2];
+					 next_choice = choices.into_iter().choose(&mut rng).unwrap();	// generate 0, 1, or 2 since we have 3 options
+				  }
+			}
+
+		}
+
 		match next_choice {
 			0 => {
 				enemy_punch(
@@ -1432,10 +1473,10 @@ pub fn enemy_punch(
 	mut enemy_send: EventWriter<CollideEvent>,
 	mut player: Query<&mut Transform, (With<Player>, Without<Enemy>)>,
 	mut commands: Commands, 
-	mut enemy: Query<(&mut Transform, &mut ActionTimer, &mut Actions, &mut Sprite), (With<Enemy>, Without<Player>)>,
+	mut enemy: Query<(&mut Transform, &mut ActionTimer, &mut Actions, &mut Sprite, &mut Stats), (With<Enemy>, Without<Player>)>,
 ){
     let player_transform = player.single_mut();
-	let (enemy_transform, _enemy_timer, mut enemy_actions, _enemy_sprite) = enemy.single_mut();
+	let (enemy_transform, _enemy_timer, mut enemy_actions, mut enemy_sprite, mut enemy_stats) = enemy.single_mut();
 	let mut attack_xpos = 60.;
 	if enemy_transform.translation.x > player_transform.translation.x {
 		 attack_xpos = -60.;
@@ -1493,10 +1534,10 @@ pub fn enemy_kick(
 	mut enemy_send: EventWriter<CollideEvent>,
 	mut player: Query<&mut Transform, (With<Player>, Without<Enemy>)>,
 	mut commands: Commands, 
-	mut enemy: Query<(&mut Transform, &mut ActionTimer, &mut Actions, &mut Sprite), (With<Enemy>, Without<Player>)>,
+	mut enemy: Query<(&mut Transform, &mut ActionTimer, &mut Actions, &mut Sprite, &mut Stats), (With<Enemy>, Without<Player>)>,
 ){
     let player_transform = player.single_mut();
-	let (enemy_transform, _enemy_timer, mut enemy_actions, _enemy_sprite) = enemy.single_mut();
+	let (enemy_transform, _enemy_timer, mut enemy_actions, mut enemy_sprite, mut enemu_stats) = enemy.single_mut();
 	let mut attack_xpos = 60.;
 	if enemy_transform.translation.x > player_transform.translation.x {
 		 attack_xpos = -60.;
