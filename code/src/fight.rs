@@ -1,5 +1,4 @@
 use rand::Rng;
-use rand::seq::IteratorRandom;
 use bevy::{
     prelude::*
 };
@@ -180,6 +179,7 @@ pub fn setup_fight(
 	mut commands: Commands,
 	asset_server: Res<AssetServer>,
 	mut texture_atlases: ResMut<Assets<TextureAtlas>>,
+	level: ResMut<State<Level>>,
 ) {
 	let texture_handle = asset_server.load("start_sprite_screen.png");
 	let texture_atlas = TextureAtlas::from_grid(texture_handle, Vec2::new(320., 180.), 46, 1);
@@ -210,7 +210,102 @@ pub fn setup_fight(
 	.insert(Actions::new())
     .insert(Player);
 
+
+	match level.current(){
+		Level::Level1 => {
+			commands.spawn_bundle(SpriteBundle {
+				sprite: Sprite {
+					color: Color::ORANGE_RED,
+					custom_size: Some(Vec2::new(PLAYER_W, PLAYER_H)),
+					..default()
+				},
+				transform: Transform {
+					translation: Vec3::new(crate::WIN_W/4., 0., 1.),
+					..default()
+				},
+				..default()
+			})
+			.insert(Velocity::new())
+			.insert(Stats::new())
+			.insert(Actions::new())
+			.insert(ActionTimer(Timer::from_seconds(2., false)))	// enemy can perform one attack or block every 2 secs
+			.insert(Enemy);
+		} Level::Level2 => {
+			commands.spawn_bundle(SpriteBundle {
+				sprite: Sprite {
+					color: Color::TOMATO,
+					custom_size: Some(Vec2::new(PLAYER_W, PLAYER_H)),
+					..default()
+				},
+				transform: Transform {
+					translation: Vec3::new(crate::WIN_W/4., 0., 1.),
+					..default()
+				},
+				..default()
+			})
+			.insert(Velocity::new())
+			.insert(Stats::new())
+			.insert(Actions::new())
+			.insert(ActionTimer(Timer::from_seconds(2., false)))	// enemy can perform one attack or block every 2 secs
+			.insert(Enemy);
+		} Level::Level3 => {
+			commands.spawn_bundle(SpriteBundle {
+				sprite: Sprite {
+					color: Color::ANTIQUE_WHITE,
+					custom_size: Some(Vec2::new(PLAYER_W, PLAYER_H)),
+					..default()
+				},
+				transform: Transform {
+					translation: Vec3::new(crate::WIN_W/4., 0., 1.),
+					..default()
+				},
+				..default()
+			})
+			.insert(Velocity::new())
+			.insert(Stats::new())
+			.insert(Actions::new())
+			.insert(ActionTimer(Timer::from_seconds(2., false)))	// enemy can perform one attack or block every 2 secs
+			.insert(Enemy);
+		} Level::Level4 => {
+			commands.spawn_bundle(SpriteBundle {
+				sprite: Sprite {
+					color: Color::SALMON,
+					custom_size: Some(Vec2::new(PLAYER_W, PLAYER_H)),
+					..default()
+				},
+				transform: Transform {
+					translation: Vec3::new(crate::WIN_W/4., 0., 1.),
+					..default()
+				},
+				..default()
+			})
+			.insert(Velocity::new())
+			.insert(Stats::new())
+			.insert(Actions::new())
+			.insert(ActionTimer(Timer::from_seconds(2., false)))	// enemy can perform one attack or block every 2 secs
+			.insert(Enemy);
+		} Level::Level5 => {
+			commands.spawn_bundle(SpriteBundle {
+				sprite: Sprite {
+					color: Color::PINK,
+					custom_size: Some(Vec2::new(PLAYER_W, PLAYER_H)),
+					..default()
+				},
+				transform: Transform {
+					translation: Vec3::new(crate::WIN_W/4., 0., 1.),
+					..default()
+				},
+				..default()
+			})
+			.insert(Velocity::new())
+			.insert(Stats::new())
+			.insert(Actions::new())
+			.insert(ActionTimer(Timer::from_seconds(2., false)))	// enemy can perform one attack or block every 2 secs
+			.insert(Enemy);
+		}
+	}
 	// spawn a dummy enemy sprite
+	/* 
 	commands.spawn_bundle(SpriteBundle {
 		sprite: Sprite {
 			color: Color::ORANGE_RED,
@@ -228,6 +323,7 @@ pub fn setup_fight(
 	.insert(Actions::new())
 	.insert(ActionTimer(Timer::from_seconds(2., false)))	// enemy can perform one attack or block every 2 secs
 	.insert(Enemy);
+	*/
 
 	// spawn player health bar
 	commands.spawn_bundle(SpriteBundle {
@@ -1374,13 +1470,13 @@ pub fn move_enemy(
 pub fn enemy_take_action(
 	time: Res<Time>,
 	mut player: Query<&mut Transform, (With<Player>, Without<Enemy>)>,
-	mut enemy: Query<(&mut Transform, &mut ActionTimer, &mut Actions, &mut Sprite, & mut Stats), (With<Enemy>, Without<Player>)>,
+	mut enemy: Query<(&mut Transform, &mut ActionTimer, &mut Actions, &mut Sprite), (With<Enemy>, Without<Player>)>,
 	// these last three are to pass to the punch, kick, and block functions
 	enemy_send: EventWriter<CollideEvent>,
 	commands: Commands,
 	level: ResMut<State<Level>>,
 ) {
-	let (enemy_transform, mut enemy_timer, mut enemy_actions, mut enemy_sprite,mut enemy_stats) = enemy.single_mut();
+	let (enemy_transform, mut enemy_timer, mut enemy_actions, mut enemy_sprite) = enemy.single_mut();
 	let player_transform = player.single_mut();
 	let mut rng = rand::thread_rng();
 	let attack_length: f32 = 80.;
@@ -1398,52 +1494,14 @@ pub fn enemy_take_action(
 
 	enemy_timer.0.tick(time.delta());
 	if enemy_timer.0.finished() && enemy_actions.blocking {
-		enemy_unblock(&mut enemy_sprite, &mut enemy_actions);
+		enemy_unblock(&mut enemy_sprite, &mut enemy_actions, level);
 	}
 
 	if enemy_timer.0.finished() && (!enemy_actions.attacking && !enemy_actions.blocking) && enemy_within_range {
 		enemy_timer.0.reset();
 
 		// choose an action for the enemy to take (punch, kick, or block)
-		let mut next_choice = rng.gen_range(0..3);	// generate 0, 1, or 2 since we have 3 options
-		match level.current(){
-			Level::Level1 =>{
-				if(enemy_stats.health < 20.0){
-					let choices=[0,0,0,1,1,1,2];
-					 next_choice = choices.into_iter().choose(&mut rng).unwrap();	// generate 0, 1, or 2 since we have 3 options
-				  }
-			}
-			Level::Level2 =>{
-				if(enemy_stats.health < 30.0){
-					let choices=[0,0,0,1,1,1,2];
-					 next_choice = choices.into_iter().choose(&mut rng).unwrap();	// generate 0, 1, or 2 since we have 3 options
-				  }
-			}
-			Level::Level3 =>{
-				if(enemy_stats.health < 50.0){
-					enemy_timer.0=Timer::from_seconds(0.1, false);
-					let choices=[0,0,0,1,1,1,2];
-					 next_choice = choices.into_iter().choose(&mut rng).unwrap();	// generate 0, 1, or 2 since we have 3 options
-				  }
-			}
-			Level::Level4 =>{
-				enemy_timer.0=Timer::from_seconds(0.01, false);
-				if(enemy_stats.health < 60.0){
-					let choices=[0,0,0,1,1,1,2];
-					 next_choice = choices.into_iter().choose(&mut rng).unwrap();	// generate 0, 1, or 2 since we have 3 options
-				  }
-
-			}
-			Level::Level5 =>{
-				enemy_timer.0=Timer::from_seconds(0.01, false);
-				if(enemy_stats.health < 70.0){
-					let choices=[0,0,0,1,1,1,2];
-					 next_choice = choices.into_iter().choose(&mut rng).unwrap();	// generate 0, 1, or 2 since we have 3 options
-				  }
-			}
-
-		}
-
+		let next_choice = rng.gen_range(0..3);	// generate 0, 1, or 2 since we have 3 options
 		match next_choice {
 			0 => {
 				enemy_punch(
@@ -1473,10 +1531,10 @@ pub fn enemy_punch(
 	mut enemy_send: EventWriter<CollideEvent>,
 	mut player: Query<&mut Transform, (With<Player>, Without<Enemy>)>,
 	mut commands: Commands, 
-	mut enemy: Query<(&mut Transform, &mut ActionTimer, &mut Actions, &mut Sprite, &mut Stats), (With<Enemy>, Without<Player>)>,
+	mut enemy: Query<(&mut Transform, &mut ActionTimer, &mut Actions, &mut Sprite), (With<Enemy>, Without<Player>)>,
 ){
     let player_transform = player.single_mut();
-	let (enemy_transform, _enemy_timer, mut enemy_actions, mut enemy_sprite, mut enemy_stats) = enemy.single_mut();
+	let (enemy_transform, _enemy_timer, mut enemy_actions, _enemy_sprite) = enemy.single_mut();
 	let mut attack_xpos = 60.;
 	if enemy_transform.translation.x > player_transform.translation.x {
 		 attack_xpos = -60.;
@@ -1534,10 +1592,10 @@ pub fn enemy_kick(
 	mut enemy_send: EventWriter<CollideEvent>,
 	mut player: Query<&mut Transform, (With<Player>, Without<Enemy>)>,
 	mut commands: Commands, 
-	mut enemy: Query<(&mut Transform, &mut ActionTimer, &mut Actions, &mut Sprite, &mut Stats), (With<Enemy>, Without<Player>)>,
+	mut enemy: Query<(&mut Transform, &mut ActionTimer, &mut Actions, &mut Sprite), (With<Enemy>, Without<Player>)>,
 ){
     let player_transform = player.single_mut();
-	let (enemy_transform, _enemy_timer, mut enemy_actions, mut enemy_sprite, mut enemu_stats) = enemy.single_mut();
+	let (enemy_transform, _enemy_timer, mut enemy_actions, _enemy_sprite) = enemy.single_mut();
 	let mut attack_xpos = 60.;
 	if enemy_transform.translation.x > player_transform.translation.x {
 		 attack_xpos = -60.;
@@ -1595,15 +1653,41 @@ pub fn enemy_block(
 	mut enemy_actions: &mut Actions,
 ) {
 	enemy_actions.blocking = true;
-	enemy_sprite.color = Color::MAROON;	// change enemy sprite color so we know the blocking is working
+
+	enemy_sprite.color = Color::rgb(enemy_sprite.color.r()*0.5, 
+								    enemy_sprite.color.g()*0.5, 
+									enemy_sprite.color.b()*0.5);	// change enemy sprite color so we know the blocking is working
 }
 
 pub fn enemy_unblock(
 	mut enemy_sprite: &mut Sprite,
 	mut enemy_actions: &mut Actions,
+	level: ResMut<State<Level>>
+
 ) {
 	enemy_actions.blocking = false;
-	enemy_sprite.color = Color::RED;
+	enemy_sprite.color = Color::rgb(enemy_sprite.color.r()*2.,
+									enemy_sprite.color.g()*2.,
+									enemy_sprite.color.b()*2.,);
+	
+	match level.current(){
+		Level::Level1 =>{
+			enemy_sprite.color = Color::RED;
+		}
+		Level::Level2=> {
+			enemy_sprite.color = Color::TOMATO;
+		}
+		Level::Level3=> {
+			enemy_sprite.color = Color::ANTIQUE_WHITE;
+		}
+		Level::Level4 => {
+			enemy_sprite.color = Color::SALMON;
+		}
+		Level::Level5=> {
+			enemy_sprite.color = Color::PINK;
+		}
+	}
+	
 }
 
 pub fn enemy_remove_attack(
