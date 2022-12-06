@@ -33,6 +33,8 @@ pub struct AnimationTimer(Timer);
 #[derive(Component)]
 pub struct IsStart();
 #[derive(Component)]
+pub struct IsLevel();
+#[derive(Component)]
 pub struct CreditsButton();
 #[derive(Component)]
 pub struct StartButton();
@@ -132,9 +134,18 @@ fn main() {
 			    .with_system(conversation::process_input)
 		)
 		.add_system_set(
+			SystemSet::on_enter(GameState::LevelChange)
+				.with_system(setup_level_change)
+		)
+		.add_system(animate_level_change)
+		.add_system_set(
 			SystemSet::on_update(GameState::LevelChange)
 				.label("level-up")
 				.with_system(level_change)
+		)
+		.add_system_set(
+			SystemSet::on_exit(GameState::LevelChange)
+				.with_system(clear_level)
 		)
 		.add_system(change_gamestate)
 		.add_system(conv_over)
@@ -273,7 +284,6 @@ fn button_system(
 	let mouse_clicked = buttons.just_pressed(MouseButton::Left);
 	
 	if mouse_clicked{
-		println!("{:?}", Window::cursor_position(window));
 		if (425. > cursor_position.y) & 
 			(375. < cursor_position.y) &
 			(725. > cursor_position.x) &
@@ -473,15 +483,75 @@ fn change_gamestate(
 		GameState::Credits =>{}
 	}
 }
+
 fn level_change(
 	mut game_state: ResMut<State<GameState>>,
-){
-	match game_state.set(GameState::Conversation) {
+	time: Res<Time>,
+	mut levanimate: Query<(&mut DespawnTimer, With<IsLevel>)>,
+) {
+	/*match game_state.set(GameState::Conversation) {
 		Ok(_) => info!("GameState: Conversation"),
 		Err(_) => (),
-	}
+	}*/
 
+	for (mut timer, _level) in levanimate.iter_mut() {
+		timer.tick(time.delta());
+		if timer.just_finished() {
+			match game_state.set(GameState::Conversation) {
+				Ok(_) => info!("GameState: Conversation"),
+				Err(_) => (),
+			}
+		}
+	}
 }
+
+fn setup_level_change(
+	mut commands: Commands,
+	asset_server: Res<AssetServer>,
+	mut texture_atlases: ResMut<Assets<TextureAtlas>>,
+){
+	let texture_handle = asset_server.load("nextlevelgif.png");
+	let texture_atlas = TextureAtlas::from_grid(texture_handle, Vec2::new(640., 370.), 25, 1);
+	let texture_atlas_handle = texture_atlases.add(texture_atlas);
+
+	commands.spawn_bundle(SpriteSheetBundle {
+		texture_atlas: texture_atlas_handle,
+		transform: Transform::from_scale(Vec3::splat(2.)),
+		..default()
+	})
+	.insert(AnimationTimer(Timer::from_seconds(0.125,  true)))
+	.insert(DespawnTimer(Timer::from_seconds(1.125,false)))
+	.insert(IsLevel());
+}
+
+fn animate_level_change(
+	time: Res<Time>,
+	texture_atlases: Res<Assets<TextureAtlas>>,
+	mut query: Query<(
+		&mut AnimationTimer, 
+		&mut TextureAtlasSprite, 
+		&Handle<TextureAtlas>, With<IsLevel>
+	)>,
+){
+	for(mut timer, mut sprite, _texture_atlas_handle, _level) in &mut query{
+		timer.tick(time.delta());
+		if timer.just_finished(){
+			let texture_atlas = texture_atlases.get(_texture_atlas_handle).unwrap();
+			sprite.index = (sprite.index + 1) % texture_atlas.textures.len();
+		}
+	}
+}
+
+fn clear_level(
+	mut commands: Commands,
+	mut query: Query<(Entity, With<IsLevel>)
+	>,
+){
+	for (e, _level) in query.iter_mut(){
+		commands.entity(e).despawn();	
+	}
+}
+
 
 fn fight_over(
 	mut game_state: ResMut<State<GameState>>,
