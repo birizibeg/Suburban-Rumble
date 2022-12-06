@@ -1,6 +1,6 @@
 use bevy::{
 	prelude::*,
-	window::PresentMode, render::texture,
+	window::PresentMode,
 };
 
 mod fight;
@@ -8,7 +8,6 @@ mod conversation;
 
 const WIN_W: f32 = 1280.;
 const WIN_H: f32 = 720.;
-static mut LEVEL: i8 = 1;
 
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
 enum GameState {
@@ -16,6 +15,16 @@ enum GameState {
     Credits,
     Conversation,
     Fight,
+	LevelChange,
+}
+
+#[derive(Debug, Clone, Eq, PartialEq, Hash)]
+pub enum Level {
+	Level1,
+    Level2,
+    Level3,
+    Level4,
+	Level5,
 }
 #[derive(Component, Deref, DerefMut)]
 struct PopupTimer(Timer);
@@ -23,6 +32,8 @@ struct PopupTimer(Timer);
 pub struct AnimationTimer(Timer);
 #[derive(Component)]
 pub struct IsStart();
+#[derive(Component)]
+pub struct IsLevel();
 #[derive(Component)]
 pub struct CreditsButton();
 #[derive(Component)]
@@ -50,6 +61,7 @@ fn main() {
 		})
 		.insert_resource(ClearColor(Color::BLACK))
 		.add_state(GameState::Start)	//start the game in the fight state
+		.add_state(Level::Level1)	//start the game on level 1
 		.add_event::<ConvInputEvent>()
 		.add_event::<ConvLossEvent>()
 		.add_event::<ConvWinEvent>()
@@ -120,6 +132,20 @@ fn main() {
 				.label("conversation")
 				.with_system(conversation::text_input)
 			    .with_system(conversation::process_input)
+		)
+		.add_system_set(
+			SystemSet::on_enter(GameState::LevelChange)
+				.with_system(setup_level_change)
+		)
+		.add_system(animate_level_change)
+		.add_system_set(
+			SystemSet::on_update(GameState::LevelChange)
+				.label("level-up")
+				.with_system(level_change)
+		)
+		.add_system_set(
+			SystemSet::on_exit(GameState::LevelChange)
+				.with_system(clear_level)
 		)
 		.add_system(change_gamestate)
 		.add_system(conv_over)
@@ -197,7 +223,7 @@ fn clear_start(
 	/*for (e, _timer, _sprite, _texture_atlas_handle) in query.iter_mut(){
         commands.entity(e).despawn();
     }*/
-	for (e, start) in query.iter_mut(){
+	for (e, _start) in query.iter_mut(){
 		commands.entity(e).despawn();	
 	}
 }
@@ -243,8 +269,6 @@ fn button_system(
 	mut game_state: ResMut<State<GameState>>,
 	windows: Res<Windows>,
 	buttons: Res<Input<MouseButton>>,
-	mut start_query: Query<&Transform, With<StartButton>>,	
-	mut credits_query: Query<&Transform, With<CreditsButton>>, 
 ){
 	let window = windows.get_primary().unwrap();
 	
@@ -260,23 +284,22 @@ fn button_system(
 	let mouse_clicked = buttons.just_pressed(MouseButton::Left);
 	
 	if mouse_clicked{
-		println!("{:?}", Window::cursor_position(window));
-		if ((425. > cursor_position.y) & 
+		if (425. > cursor_position.y) & 
 			(375. < cursor_position.y) &
 			(725. > cursor_position.x) &
 			(550. < cursor_position.x)
-		){
+		{
 
 			match game_state.set(GameState::Conversation) {
 					Ok(_) => info!("GameState: Conversation"),
 					Err(_) => (),
 				}
 		}
-		else if ((340. > cursor_position.y) & 
+		else if (340. > cursor_position.y) & 
 			(280. < cursor_position.y) &
 			(740. > cursor_position.x) &
 			(535. < cursor_position.x)
-		){		match game_state.set(GameState::Credits) {
+		{		match game_state.set(GameState::Credits) {
 					Ok(_) => info!("GameState: Credits"),
 					Err(_) => (),
 				}
@@ -402,7 +425,8 @@ fn clear_credits(
 fn conv_over(
 	mut game_state: ResMut<State<GameState>>,
 	mut loss_reader: EventReader<ConvLossEvent>,
-	mut win_reader: EventReader<ConvWinEvent>
+	mut win_reader: EventReader<ConvWinEvent>,
+	mut level: ResMut<State<Level>>,
 ) {
 	for _ev in loss_reader.iter() {
 		match game_state.set(GameState::Fight){
@@ -411,8 +435,29 @@ fn conv_over(
 		}
 	}
 	for _ev in win_reader.iter() {
-		match game_state.set(GameState::Credits){
-			Ok(_) => info!("GameState: Credits"),
+		println!("we are in conversation!");
+		//Check which level to see what next level should be
+		match level.current(){
+			Level::Level1 =>{
+				level.set(Level::Level2);
+			}
+			Level::Level2 =>{
+				level.set(Level::Level3);
+			}
+			Level::Level3 =>{
+				level.set(Level::Level4);
+			}Level::Level4 =>{
+				level.set(Level::Level5);
+			}
+			Level::Level5 =>{ //if this is the last level, then we won the game
+				match game_state.set(GameState::Credits){
+					Ok(_) => info!("GameState: Credits"),
+					Err(_) => (),
+				}
+			}
+		}
+		match game_state.set(GameState::LevelChange){
+			Ok(_) => info!("GameState: LevelChange"),
 			Err(_) => (),
 		}
 	}
@@ -425,20 +470,94 @@ fn change_gamestate(
 
 ) {
 	if keys.pressed(KeyCode::Key1) {	// change GameState to Start
-		unsafe {
-			LEVEL = 1;
+		match game_state.set(GameState::Start) {
+			Ok(_) => info!("GameState: Start"),
+			Err(_) => (),
 		}
-			match game_state.set(GameState::Start) {
-				Ok(_) => info!("GameState: Start"),
+	}
+	match game_state.current(){ //this match statement is to check if there is a level change, then change back 2 convo
+		GameState::LevelChange=>{}
+		GameState::Start =>{}
+		GameState::Conversation =>{}
+		GameState::Fight =>{}
+		GameState::Credits =>{}
+	}
+}
+
+fn level_change(
+	mut game_state: ResMut<State<GameState>>,
+	time: Res<Time>,
+	mut levanimate: Query<(&mut DespawnTimer, With<IsLevel>)>,
+) {
+	/*match game_state.set(GameState::Conversation) {
+		Ok(_) => info!("GameState: Conversation"),
+		Err(_) => (),
+	}*/
+
+	for (mut timer, _level) in levanimate.iter_mut() {
+		timer.tick(time.delta());
+		if timer.just_finished() {
+			match game_state.set(GameState::Conversation) {
+				Ok(_) => info!("GameState: Conversation"),
 				Err(_) => (),
 			}
 		}
+	}
 }
+
+fn setup_level_change(
+	mut commands: Commands,
+	asset_server: Res<AssetServer>,
+	mut texture_atlases: ResMut<Assets<TextureAtlas>>,
+){
+	let texture_handle = asset_server.load("nextlevelgif.png");
+	let texture_atlas = TextureAtlas::from_grid(texture_handle, Vec2::new(640., 370.), 25, 1);
+	let texture_atlas_handle = texture_atlases.add(texture_atlas);
+
+	commands.spawn_bundle(SpriteSheetBundle {
+		texture_atlas: texture_atlas_handle,
+		transform: Transform::from_scale(Vec3::splat(2.)),
+		..default()
+	})
+	.insert(AnimationTimer(Timer::from_seconds(0.125,  true)))
+	.insert(DespawnTimer(Timer::from_seconds(1.125,false)))
+	.insert(IsLevel());
+}
+
+fn animate_level_change(
+	time: Res<Time>,
+	texture_atlases: Res<Assets<TextureAtlas>>,
+	mut query: Query<(
+		&mut AnimationTimer, 
+		&mut TextureAtlasSprite, 
+		&Handle<TextureAtlas>, With<IsLevel>
+	)>,
+){
+	for(mut timer, mut sprite, _texture_atlas_handle, _level) in &mut query{
+		timer.tick(time.delta());
+		if timer.just_finished(){
+			let texture_atlas = texture_atlases.get(_texture_atlas_handle).unwrap();
+			sprite.index = (sprite.index + 1) % texture_atlas.textures.len();
+		}
+	}
+}
+
+fn clear_level(
+	mut commands: Commands,
+	mut query: Query<(Entity, With<IsLevel>)
+	>,
+){
+	for (e, _level) in query.iter_mut(){
+		commands.entity(e).despawn();	
+	}
+}
+
 
 fn fight_over(
 	mut game_state: ResMut<State<GameState>>,
 	mut loss_reader: EventReader<FightLossEvent>,
-	mut win_reader: EventReader<FightWinEvent>
+	mut win_reader: EventReader<FightWinEvent>,
+	mut level: ResMut<State<Level>>,
 ) {
 	for _ev in loss_reader.iter() {
 		match game_state.set(GameState::Credits){
@@ -447,8 +566,28 @@ fn fight_over(
 		}
 	}
 	for _ev in win_reader.iter() {
-		match game_state.set(GameState::Conversation){
-			Ok(_) => info!("GameState: Conversation"),
+		println!("we are in fight!");
+		match level.current(){
+			Level::Level1 =>{
+				level.set(Level::Level2);
+			}
+			Level::Level2 =>{
+				level.set(Level::Level3);
+			}
+			Level::Level3 =>{
+				level.set(Level::Level4);
+			}Level::Level4 =>{
+				level.set(Level::Level5);
+			}
+			Level::Level5 =>{ //if this is the last level, then we won the game
+				match game_state.set(GameState::Credits){
+					Ok(_) => info!("GameState: Credits"),
+					Err(_) => (),
+				}
+			}
+		}
+		match game_state.set(GameState::LevelChange){
+			Ok(_) => info!("GameState: LevelChange"),
 			Err(_) => (),
 		}
 	}

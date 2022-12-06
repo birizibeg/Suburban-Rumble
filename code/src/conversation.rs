@@ -37,6 +37,7 @@ pub struct Button;
 #[derive(Component)]
 pub struct Enemy{
 	start_tolerance: f64,
+    cur_tol: f64,
     name: String,
     age: i8,
     job: String,
@@ -51,12 +52,6 @@ const NICE_RESPONSES: [&'static str;6] = ["Thank you!", "I really appreciate tha
 const MEAN_RESPONSES: [&'static str;6] = ["Why would you say that to me?", "Why would you say that to me?",
 "I will literally call the police.", "Do you want to fight?!?!???!", "You're the worst neighbor EVER!", "You don't want to take it there!"];
 
-const NICE_GREETINGS: [&'static str;6] = ["Hello!", "How are you?", "I hope your day is going good so far!", 
-"How is your day going?", "Long time, no see! How are you?", "How's it going?"];
-
-const MEAN_GREETINGS: [&'static str;6] = ["What is WRONG with you?", "Don't smile at me! You KNOW what you did.", "I can not stand you!", 
-"You're actually the worst neighbor ever!", "Why do you act like this?", "You're ruining my day!!"];
-
 const NEGATOR_WORDS: [&'static str;8] = ["not", "don't", "dont", "neither","never","seldom", "nevermore","little"];
 const EMPHASIZING_WORDS: [&'static str;17] = ["veri", "pretti", "extrem", "vast", "huge", "especi", "over", 
 "exceed", "extra", "immens", "tremend", "excess", "great", "genuin", "realli", "super", "truli"];
@@ -67,7 +62,6 @@ const EMPHASIZING_WORDS: [&'static str;17] = ["veri", "pretti", "extrem", "vast"
 // etc.. 
 // FINAL TURN - after player final response, return fight or not
 const MAX_TURNS: i32 = 4;
-const START_TURN: i32 = 0;
 static mut CUR_TURN: i32 = 0;
 static mut CHECK_LEVEL: i32 = 1;
 static mut check_dups: Vec<i32> = Vec::new();
@@ -78,7 +72,7 @@ pub fn setup_conversation(
 	mut commands: Commands,
 	mut clear_color: ResMut<ClearColor>, 
 	asset_server: Res<AssetServer>,
-    mut level: ResMut<State<Level>>,
+    level: ResMut<State<Level>>,
 
 ){
     unsafe {
@@ -170,14 +164,10 @@ pub fn setup_conversation(
                     ..default()
                 },
                 ..default()
-<<<<<<< Updated upstream
-            }).insert(Enemy{start_tolerance: 100., name: String::from("Catherine Robinson"), age: 27, job: String::from("Teacher"), description: String::from("nice")});
-            
-=======
             }).insert(Enemy{start_tolerance: 50., cur_tol:50., name: String::from("Catherine Robinson"), age: 27, job: String::from("Teacher"), description: String::from("nice"), 
             NICE_REPLIES: ["You are just the best!", "You're an absolute life-saver!", "I came over for sugar, but I feel like I'm leaving with a friend!", "You have no idea how much this means to me!", "You are so amazing!", "Wow, I spend so much time talking to kids - I forgot how nice adults could be!"],
             MEAN_REPLIES: ["I've seen this kind of bad behavior before. Is everything okay at home?", "You're obviously in a bad mood. Let's count down from 5 to cool down.", "I have students who act like this all the time. Let's just breathe...Ooohh, Ahhh, Ooohh, Ahhh, Oooh, Ahhh", "Let's try using our kind words, sweetie.", "Those are bad words and you know that.", "Why are you acting like this? Talk to me."]}); //Vec::new()
->>>>>>> Stashed changes
+
             commands.spawn_bundle(Text2dBundle {
                 text: Text::from_section("Excuse me neighbor, can I borrow some sugar?", enemy_text_style),
                 text_2d_bounds: Text2dBounds {
@@ -201,13 +191,10 @@ pub fn setup_conversation(
                     ..default()
                 },
                 ..default()
-<<<<<<< Updated upstream
-            }).insert(Enemy{start_tolerance: 50., name: String::from("Billy Wickler"), age: 49, job: String::from("Cowboy Rancher"), description: String::from("brash")});
-=======
+
             }).insert(Enemy{start_tolerance: 26., cur_tol:26., name: String::from("Billy Wickler"), age: 49, job: String::from("Cowboy Rancher"), description: String::from("brash"), 
             NICE_REPLIES: ["I 'preciate you hearin' me out, boy.", "Yeah, I don' know - that darn dog gotta mind of its own.", "You are jus' so nice. No'thin like the bull nurses from back home.", "I wish I had someone like you on the farm, you so easy-goin'!", "Ya know, I like ya boy. You should come over for a base burner some time.", "Thought you was gon; give me some corral dust, but I 'preciate your response, boy."], 
             MEAN_REPLIES: ["I used to tussle livestock! You dont wanna crawl my hump!", "You better hold your horses boy!", "Relax boy, I don' wanna have to give ya a lick an' a promise!", "Who do you think you talkin' to boy?", "Listen here Grandpa, don't go airin' your lungs at ME!", "Shut your big bazoo, Grandpa."]});
->>>>>>> Stashed changes
             
             commands.spawn_bundle(Text2dBundle {
                 text: Text::from_section("Listen here boy, my dog got to runnin' away and I think you took em!", enemy_text_style),
@@ -232,13 +219,10 @@ pub fn setup_conversation(
                     ..default()
                 },
                 ..default()
-<<<<<<< Updated upstream
-            }).insert(Enemy{start_tolerance: 70., name: String::from("Gloria Brown"), age: 72, job: String::from("Retired Library Manager"), description: String::from("blunt")});
-=======
+
             }).insert(Enemy{start_tolerance: 36., cur_tol:36., name: String::from("Gloria Brown"), age: 72, job: String::from("Retired Library Manager"), description: String::from("blunt"), 
             NICE_REPLIES: ["Aww you're just the sweetest boy - I oughta pinch your cheecks!", "You're so nice, I'm gonna mke you a fixin' of my famous mac & cheese!", "Thank you for understanding. My eyesight and hearing ain't what it used to be.", "Oh bless your heart - you're just too kind!", "Neighbors like you sure do make life easier.", "Thank you! You're sweeter than my award-winning peach cobbler pie!"], 
             MEAN_REPLIES: ["Who taught a young boy like you to talk like that?!", "You talk to me that way, we be fighting 'till the cows come home!", "You're getting too big for your britches talk'n like that!", "I outghta make you wash your mouth out with soap!", "Oh, I'll knock you into the middle of next week!", "You wouldn't know manners if it slapped you in the face!"]});
->>>>>>> Stashed changes
             
             commands.spawn_bundle(Text2dBundle {
                 text: Text::from_section("Hi honey. I need someone to read to me...", enemy_text_style),
@@ -262,13 +246,10 @@ pub fn setup_conversation(
                     ..default()
                 },
                 ..default()
-<<<<<<< Updated upstream
-            }).insert(Enemy{start_tolerance: 30., name: String::from("Jeffrey Madden"), age: 34, job: String::from("Stockbroker"), description: String::from("stressed")});
-=======
             }).insert(Enemy{start_tolerance: 12., cur_tol:12., name: String::from("Jeffrey Madden"), age: 34, job: String::from("Stockbroker"), description: String::from("stressed"), 
             NICE_REPLIES: ["I guess you're not as dumb as I thought.","If I knew you were so easygoing, I would've invited you to my party.","Why doesn't anyone like you? You're not that bad.","I'm glad you're understanding - just don't block my driveway again","Wow as a New Yorker, I'm not used to people being so nice.","Thanks for being such a chill guy."], 
             MEAN_REPLIES: ["Why would you say that to me?", "You can't take me in a fight, so I suggest you calm down!", "I will literally call the police.", "Shut the **** up!", "You're the worst neighbor EVER!", "You don't want to take it there!"]});
->>>>>>> Stashed changes
+
             commands.spawn_bundle(Text2dBundle {
                 text: Text::from_section("You need to move your car NOW, I'm having a party and it's blocking the driveway", enemy_text_style),
                 text_2d_bounds: Text2dBounds {
@@ -291,14 +272,12 @@ pub fn setup_conversation(
                     ..default()
                 },
                 ..default()
-<<<<<<< Updated upstream
-            }).insert(Enemy{start_tolerance: 10., name: String::from("Katie Martinez"), age: 42, job: String::from("Mom"), description: String::from("mean")});
-=======
+
             }).insert(Enemy{start_tolerance: 6., cur_tol:6., name: String::from("Karen Martinez"), age: 42, job: String::from("Mom"), description: String::from("mean"), 
             NICE_REPLIES: ["I wish you would've been resonable before - we could've avoided all this.", "You're actually nice, you just make dumb decisions.", "I would think you would have learned to be smarter since you're so old, but at least you're kind.", "I guess you're not as bad as I thought.", "You're a horrible neighbor, but at least you're a pretty good person.", "You're not as bad as I thought, but we can work on the manners. I'll have my kids teach you."], 
             MEAN_REPLIES: ["You are not a good person.", " My kids are honeslty smarter than you, you idiot!", "I will call the police on you RIGHT NOW!", 
-            "As a Mom who deals with toddlers - I can honeslty say you're the most immature person I know.", "You need to be put on time-out for this behavior!", "I HATE having you as a neighbor - you need to move!"]});
->>>>>>> Stashed changes
+            "As a Mom who deals with toddlers - I can honestly say you're the most immature person I know.", "You need to be put on time-out for this behavior!", "I HATE having you as a neighbor - you need to move!"]});
+
             
             commands.spawn_bundle(Text2dBundle {
                 text: Text::from_section("Why are you ALWAYS having people over? Is it safe to have all these strangers in a family-friendly neighborhood?", enemy_text_style),
@@ -383,8 +362,8 @@ pub fn process_input(
 ) {
     let mut multiplier: f64;
     let mut enemy = enemy.single_mut();
-    let mut startTol = enemy.start_tolerance;
-    let mut curTol = startTol;
+    let mut cur_tol = enemy.cur_tol;
+    let start_tol = enemy.start_tolerance;
     let stemmer = Stemmer::create(Algorithm::English);
     let mut simple_sentence: Vec<String> = Vec::new();
     let mut enem_dlg = enemy_dialogue.single_mut();
@@ -411,19 +390,16 @@ pub fn process_input(
         for word in &simple_sentence {
             let mut word_was_neg = false;
             //check if the word is present in our NEGATOR array
-            for negativeWord in NEGATOR_WORDS{
-                if(word.to_string() == negativeWord){
+            for negative_word in NEGATOR_WORDS{
+                if word.to_string() == negative_word {
                     multiplier = multiplier * -1.0;
                     word_was_neg = true;
-                    println!("word was negative");
                 }
             }
-            if(!word_was_neg){ //the word was not negative so check it for emphasis
-                println!("This is the word we're on {}", word.to_string());
+            if !word_was_neg{ //the word was not negative so check it for emphasis
                 for emphasis in EMPHASIZING_WORDS{
-                    if(word.to_string() == emphasis){
+                    if word.to_string() == emphasis {
                         multiplier = multiplier * 2.0;
-                        println!("emphasizer used");
                     }
                 }
 
@@ -435,16 +411,15 @@ pub fn process_input(
         } else {
             sentiment_score.net_score = sentiment_score.net_score * multiplier;
         }
-        println!("Sentiment Score: {}", sentiment_score.net_score);
         //enemy.start_tolerance = enemy.start_tolerance + sentiment_score.net_score;
-        curTol = curTol + sentiment_score.net_score;
-        println!("This is current tol {}", curTol);
-        
+        cur_tol = cur_tol + sentiment_score.net_score;
+        enemy.cur_tol = cur_tol;        
         
         //if the enemy has no more tolerance
-        if curTol <= 0.0 {
+        if cur_tol <= 0.0 {
             loss_writer.send(ConvLossEvent());
-         }else if curTol >= startTol*2.0 {  //the enemy is so satisfied, the level was won
+            // TODO: Fix this so that it checks correctly
+         }else if cur_tol >= start_tol*2.0 {  //the enemy is so satisfied, the level was won
             //let enemy_resp = "You know what? I love you! Have a great day.";
             //enem_dlg.sections[0].value = enemy_resp.to_string();
             win_writer.send(ConvWinEvent());
@@ -461,7 +436,8 @@ pub fn process_input(
                 //println!("Current Turn: {}", CUR_TURN);
             }
             //CASE REACHED FINAL TURN AND PLAYER DIDN'T TRIGGER FIGHT,BUT ENEMY TOLERANCE LESS THAN HALF OF ORIGINAL
-            else if (curTol <= (startTol/2.)) { 
+            // TODO: Fix this so it checks correctly
+            else if cur_tol <= (start_tol/2.) { 
                 loss_writer.send(ConvLossEvent());
             }
             //MAX TURNS REACHED AND ENEMY IS MORE THAN HALF CONTENT, LEVEL WON
