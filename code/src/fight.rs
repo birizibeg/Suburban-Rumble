@@ -303,7 +303,97 @@ pub fn setup_fight(
             .insert(Actions::new())
             .insert(ActionTimer(Timer::from_seconds(2., false)))    // enemy can perform one attack or block every 2 secs
             .insert(Enemy);
-        }
+        } Level::Level6 => {
+			commands.spawn_bundle(SpriteBundle {
+                sprite: Sprite {
+                    color: Color::ORANGE_RED,
+                    custom_size: Some(Vec2::new(PLAYER_W, PLAYER_H)),
+                    ..default()
+                },
+                transform: Transform {
+                    translation: Vec3::new(crate::WIN_W/4., 0., 1.),
+                    ..default()
+                },
+                ..default()
+            })
+            .insert(Velocity::new())
+            .insert(Stats::new())
+            .insert(Actions::new())
+            .insert(ActionTimer(Timer::from_seconds(1.5, false)))    // enemy can perform one attack or block every 1.5 secs
+            .insert(Enemy);
+		} Level::Level7 => {
+			commands.spawn_bundle(SpriteBundle {
+                sprite: Sprite {
+                    color: Color::TOMATO,
+                    custom_size: Some(Vec2::new(PLAYER_W, PLAYER_H)),
+                    ..default()
+                },
+                transform: Transform {
+                    translation: Vec3::new(crate::WIN_W/4., 0., 1.),
+                    ..default()
+                },
+                ..default()
+            })
+            .insert(Velocity::new())
+            .insert(Stats::new())
+            .insert(Actions::new())
+            .insert(ActionTimer(Timer::from_seconds(1.5, false)))    // enemy can perform one attack or block every 1.5 secs
+            .insert(Enemy);
+		} Level::Level8 => {
+			commands.spawn_bundle(SpriteBundle {
+                sprite: Sprite {
+                    color: Color::ANTIQUE_WHITE,
+                    custom_size: Some(Vec2::new(PLAYER_W, PLAYER_H)),
+                    ..default()
+                },
+                transform: Transform {
+                    translation: Vec3::new(crate::WIN_W/4., 0., 1.),
+                    ..default()
+                },
+                ..default()
+            })
+            .insert(Velocity::new())
+            .insert(Stats::new())
+            .insert(Actions::new())
+            .insert(ActionTimer(Timer::from_seconds(1.5, false)))    // enemy can perform one attack or block every 1.5 secs
+            .insert(Enemy);
+		} Level::Level9 => {
+			commands.spawn_bundle(SpriteBundle {
+                sprite: Sprite {
+                    color: Color::SALMON,
+                    custom_size: Some(Vec2::new(PLAYER_W, PLAYER_H)),
+                    ..default()
+                },
+                transform: Transform {
+                    translation: Vec3::new(crate::WIN_W/4., 0., 1.),
+                    ..default()
+                },
+                ..default()
+            })
+            .insert(Velocity::new())
+            .insert(Stats::new())
+            .insert(Actions::new())
+            .insert(ActionTimer(Timer::from_seconds(1.5, false)))    // enemy can perform one attack or block every 1.5 secs
+            .insert(Enemy);
+		} Level::Level10 => {
+			commands.spawn_bundle(SpriteBundle {
+                sprite: Sprite {
+                    color: Color::PINK,
+                    custom_size: Some(Vec2::new(PLAYER_W, PLAYER_H)),
+                    ..default()
+                },
+                transform: Transform {
+                    translation: Vec3::new(crate::WIN_W/4., 0., 1.),
+                    ..default()
+                },
+                ..default()
+            })
+            .insert(Velocity::new())
+            .insert(Stats::new())
+            .insert(Actions::new())
+            .insert(ActionTimer(Timer::from_seconds(1.25, false)))    // enemy can perform one attack or block every 1.25 secs
+            .insert(Enemy);
+		}
     }
     // spawn a dummy enemy sprite
     /* 
@@ -1509,40 +1599,74 @@ pub fn enemy_take_action(
 
 		match level.current(){
 			Level::Level1 =>{
-				if(enemy_stats.health < 20.0){
+				if enemy_stats.health < 20.0 {
 					let choices=[0,0,0,1,1,1,2];
-					 next_choice = choices.into_iter().choose(&mut rng).unwrap();	// generate 0, 1, or 2 since we have 3 options
-				  }
+					next_choice = choices.into_iter().choose(&mut rng).unwrap();	// generate 0, 1, or 2 since we have 3 options
+				}
 			}
 			Level::Level2 =>{
-				if(enemy_stats.health < 30.0){
+				if enemy_stats.health < 30.0 {
 					let choices=[0,0,0,1,1,1,2];
-					 next_choice = choices.into_iter().choose(&mut rng).unwrap();	// generate 0, 1, or 2 since we have 3 options
-				  }
+					next_choice = choices.into_iter().choose(&mut rng).unwrap();	// generate 0, 1, or 2 since we have 3 options
+				}
 			}
 			Level::Level3 =>{
-				if(enemy_stats.health < 50.0){
-					enemy_timer.0=Timer::from_seconds(0.1, false);
+				if enemy_stats.health < 50.0 {
+					enemy_timer.0=Timer::from_seconds(0.5, false);
 					let choices=[0,0,0,1,1,1,2];
-					 next_choice = choices.into_iter().choose(&mut rng).unwrap();	// generate 0, 1, or 2 since we have 3 options
-				  }
+					next_choice = choices.into_iter().choose(&mut rng).unwrap();	// generate 0, 1, or 2 since we have 3 options
+				}
 			}
 			Level::Level4 =>{
-				enemy_timer.0=Timer::from_seconds(0.01, false);
-				if(enemy_stats.health < 60.0){
+				enemy_timer.0=Timer::from_seconds(0.5, false);
+				if enemy_stats.health < 60.0 {
 					let choices=[0,0,0,1,1,1,2];
-					 next_choice = choices.into_iter().choose(&mut rng).unwrap();	// generate 0, 1, or 2 since we have 3 options
-				  }
+					next_choice = choices.into_iter().choose(&mut rng).unwrap();	// generate 0, 1, or 2 since we have 3 options
+				}
 
 			}
-			Level::Level5 =>{
-				enemy_timer.0=Timer::from_seconds(0.01, false);
-				if(enemy_stats.health < 70.0){
+			Level::Level5 => {
+				enemy_timer.0=Timer::from_seconds(0.5, false);
+				if enemy_stats.health < 70.0 {
 					let choices=[0,0,0,1,1,1,2];
-					 next_choice = choices.into_iter().choose(&mut rng).unwrap();	// generate 0, 1, or 2 since we have 3 options
-				  }
+					next_choice = choices.into_iter().choose(&mut rng).unwrap();	// generate 0, 1, or 2 since we have 3 options
+				}
 			}
-
+			Level::Level6 => {
+				enemy_timer.0=Timer::from_seconds(0.4, false);
+				if enemy_stats.health < 25.0 {
+					let choices=[0,0,0,1,1,1,2];
+					next_choice = choices.into_iter().choose(&mut rng).unwrap();	// generate 0, 1, or 2 since we have 3 options
+				}
+			}
+			Level::Level7 => {
+				enemy_timer.0=Timer::from_seconds(0.4, false);
+				if enemy_stats.health < 40.0 {
+					let choices=[0,0,0,1,1,1,2];
+					next_choice = choices.into_iter().choose(&mut rng).unwrap();	// generate 0, 1, or 2 since we have 3 options
+				}
+			}
+			Level::Level8 => {
+				enemy_timer.0=Timer::from_seconds(0.4, false);
+				if enemy_stats.health < 50.0 {
+					let choices=[0,0,0,1,1,1,2];
+					next_choice = choices.into_iter().choose(&mut rng).unwrap();	// generate 0, 1, or 2 since we have 3 options
+				}
+			}
+			Level::Level9 => {
+				enemy_timer.0=Timer::from_seconds(0.3, false);
+				if enemy_stats.health < 60.0 {
+					let choices=[0,0,0,1,1,1,2];
+					next_choice = choices.into_iter().choose(&mut rng).unwrap();	// generate 0, 1, or 2 since we have 3 options
+				}
+			}
+			Level::Level10 => {
+				enemy_timer.0=Timer::from_seconds(0.25, false);
+				if enemy_stats.health < 80.0 {
+					let choices=[0,0,0,1,1,1,2];
+					next_choice = choices.into_iter().choose(&mut rng).unwrap();	// generate 0, 1, or 2 since we have 3 options
+				}
+			}
 		}
 
 		match next_choice {
@@ -1638,7 +1762,7 @@ pub fn enemy_kick(
 	mut enemy: Query<(&mut Transform, &mut ActionTimer, &mut Actions, &mut Sprite, &mut Stats), (With<Enemy>, Without<Player>)>,
 ){
     let player_transform = player.single_mut();
-	let (enemy_transform, _enemy_timer, mut enemy_actions, mut enemy_sprite, mut enemu_stats) = enemy.single_mut();
+	let (enemy_transform, _enemy_timer, mut enemy_actions, mut enemy_sprite, mut enemy_stats) = enemy.single_mut();
 	let mut attack_xpos = 60.;
 	if enemy_transform.translation.x > player_transform.translation.x {
 		 attack_xpos = -60.;
