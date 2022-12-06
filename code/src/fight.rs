@@ -177,22 +177,23 @@ impl From<StateMachine<Move>> for StateMachine<Stand> {
 //====================FIGHT SETUP/OVERHEAD FUNCTIONS=======================
 
 pub fn setup_fight(
-	mut commands: Commands,
-	asset_server: Res<AssetServer>,
-	mut texture_atlases: ResMut<Assets<TextureAtlas>>,
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
+    mut texture_atlases: ResMut<Assets<TextureAtlas>>,
+    level: ResMut<State<Level>>,
 ) {
-	let texture_handle = asset_server.load("start_sprite_screen.png");
-	let texture_atlas = TextureAtlas::from_grid(texture_handle, Vec2::new(320., 180.), 46, 1);
-	let texture_atlas_handle = texture_atlases.add(texture_atlas);
-	
-	commands.spawn_bundle(SpriteSheetBundle {
-		texture_atlas: texture_atlas_handle,
-		transform: Transform::from_scale(Vec3::splat(4.)),
-		..default()
-	})
-	.insert(AnimationTimer(Timer::from_seconds(0.125,  true)));
+    let texture_handle = asset_server.load("start_sprite_screen.png");
+    let texture_atlas = TextureAtlas::from_grid(texture_handle, Vec2::new(320., 180.), 46, 1);
+    let texture_atlas_handle = texture_atlases.add(texture_atlas);
+    
+    commands.spawn_bundle(SpriteSheetBundle {
+        texture_atlas: texture_atlas_handle,
+        transform: Transform::from_scale(Vec3::splat(4.)),
+        ..default()
+    })
+    .insert(AnimationTimer(Timer::from_seconds(0.125,  true)));
 
-	// spawn the player sprite
+    // spawn the player sprite
     commands.spawn_bundle(SpriteBundle {
         sprite: Sprite {
             color: Color::BLUE,
@@ -206,91 +207,188 @@ pub fn setup_fight(
         ..default()
     })
     .insert(Velocity::new())
-	.insert(Stats::new())
-	.insert(Actions::new())
+    .insert(Stats::new())
+    .insert(Actions::new())
     .insert(Player);
 
-	// spawn a dummy enemy sprite
-	commands.spawn_bundle(SpriteBundle {
-		sprite: Sprite {
-			color: Color::ORANGE_RED,
-			custom_size: Some(Vec2::new(PLAYER_W, PLAYER_H)),
-			..default()
-		},
-		transform: Transform {
-			translation: Vec3::new(crate::WIN_W/4., 0., 1.),
-			..default()
-		},
-		..default()
-	})
-	.insert(Velocity::new())
-	.insert(Stats::new())
-	.insert(Actions::new())
-	.insert(ActionTimer(Timer::from_seconds(2., false)))	// enemy can perform one attack or block every 2 secs
-	.insert(Enemy);
 
-	// spawn player health bar
-	commands.spawn_bundle(SpriteBundle {
-		sprite: Sprite {
-			color: Color::LIME_GREEN,
-			custom_size: Some(Vec2::new(HEALTHBAR_X, HEALTHBAR_Y)),
-			..default()
-		},
-		transform: Transform {
-			translation: Vec3::new( (-crate::WIN_W/2. + HEALTHBAR_X/2.)+16., (crate::WIN_H/2. - HEALTHBAR_Y/2.)-16., 2.),
-			..default()
-		},
-		..default()
-	})
-	.insert(HealthBarTop)
-	.insert(PlayerName(String::from("Player")));
-	commands.spawn_bundle(SpriteBundle {
-		sprite: Sprite {
-			color: Color::RED,
-			custom_size: Some(Vec2::new(HEALTHBAR_X, HEALTHBAR_Y)),
-			..default()
-		},
-		transform: Transform {
-			translation: Vec3::new( (-crate::WIN_W/2. + HEALTHBAR_X/2.)+16., (crate::WIN_H/2. - HEALTHBAR_Y/2.)-16., 1.),
-			..default()
-		},
-		..default()
-	})
-	.insert(HealthBarBottom)
-	.insert(PlayerName(String::from("Player")));
+    match level.current(){
+        Level::Level1 => {
+            commands.spawn_bundle(SpriteBundle {
+                sprite: Sprite {
+                    color: Color::ORANGE_RED,
+                    custom_size: Some(Vec2::new(PLAYER_W, PLAYER_H)),
+                    ..default()
+                },
+                transform: Transform {
+                    translation: Vec3::new(crate::WIN_W/4., 0., 1.),
+                    ..default()
+                },
+                ..default()
+            })
+            .insert(Velocity::new())
+            .insert(Stats::new())
+            .insert(Actions::new())
+            .insert(ActionTimer(Timer::from_seconds(2., false)))    // enemy can perform one attack or block every 2 secs
+            .insert(Enemy);
+        } Level::Level2 => {
+            commands.spawn_bundle(SpriteBundle {
+                sprite: Sprite {
+                    color: Color::TOMATO,
+                    custom_size: Some(Vec2::new(PLAYER_W, PLAYER_H)),
+                    ..default()
+                },
+                transform: Transform {
+                    translation: Vec3::new(crate::WIN_W/4., 0., 1.),
+                    ..default()
+                },
+                ..default()
+            })
+            .insert(Velocity::new())
+            .insert(Stats::new())
+            .insert(Actions::new())
+            .insert(ActionTimer(Timer::from_seconds(2., false)))    // enemy can perform one attack or block every 2 secs
+            .insert(Enemy);
+        } Level::Level3 => {
+            commands.spawn_bundle(SpriteBundle {
+                sprite: Sprite {
+                    color: Color::ANTIQUE_WHITE,
+                    custom_size: Some(Vec2::new(PLAYER_W, PLAYER_H)),
+                    ..default()
+                },
+                transform: Transform {
+                    translation: Vec3::new(crate::WIN_W/4., 0., 1.),
+                    ..default()
+                },
+                ..default()
+            })
+            .insert(Velocity::new())
+            .insert(Stats::new())
+            .insert(Actions::new())
+            .insert(ActionTimer(Timer::from_seconds(2., false)))    // enemy can perform one attack or block every 2 secs
+            .insert(Enemy);
+        } Level::Level4 => {
+            commands.spawn_bundle(SpriteBundle {
+                sprite: Sprite {
+                    color: Color::SALMON,
+                    custom_size: Some(Vec2::new(PLAYER_W, PLAYER_H)),
+                    ..default()
+                },
+                transform: Transform {
+                    translation: Vec3::new(crate::WIN_W/4., 0., 1.),
+                    ..default()
+                },
+                ..default()
+            })
+            .insert(Velocity::new())
+            .insert(Stats::new())
+            .insert(Actions::new())
+            .insert(ActionTimer(Timer::from_seconds(2., false)))    // enemy can perform one attack or block every 2 secs
+            .insert(Enemy);
+        } Level::Level5 => {
+            commands.spawn_bundle(SpriteBundle {
+                sprite: Sprite {
+                    color: Color::PINK,
+                    custom_size: Some(Vec2::new(PLAYER_W, PLAYER_H)),
+                    ..default()
+                },
+                transform: Transform {
+                    translation: Vec3::new(crate::WIN_W/4., 0., 1.),
+                    ..default()
+                },
+                ..default()
+            })
+            .insert(Velocity::new())
+            .insert(Stats::new())
+            .insert(Actions::new())
+            .insert(ActionTimer(Timer::from_seconds(2., false)))    // enemy can perform one attack or block every 2 secs
+            .insert(Enemy);
+        }
+    }
+    // spawn a dummy enemy sprite
+    /* 
+    commands.spawn_bundle(SpriteBundle {
+        sprite: Sprite {
+            color: Color::ORANGE_RED,
+            custom_size: Some(Vec2::new(PLAYER_W, PLAYER_H)),
+            ..default()
+        },
+        transform: Transform {
+            translation: Vec3::new(crate::WIN_W/4., 0., 1.),
+            ..default()
+        },
+        ..default()
+    })
+    .insert(Velocity::new())
+    .insert(Stats::new())
+    .insert(Actions::new())
+    .insert(ActionTimer(Timer::from_seconds(2., false)))    // enemy can perform one attack or block every 2 secs
+    .insert(Enemy);
+    */
 
-	// spawn enemy health bar
-	commands.spawn_bundle(SpriteBundle {
-		sprite: Sprite {
-			color: Color::LIME_GREEN,
-			custom_size: Some(Vec2::new(HEALTHBAR_X, HEALTHBAR_Y)),
-			..default()
-		},
-		transform: Transform {
-			translation: Vec3::new( (crate::WIN_W/2. - HEALTHBAR_X/2.)-16., (crate::WIN_H/2. - HEALTHBAR_Y/2.)-16., 2.),
-			..default()
-		},
-		..default()
-	})
-	.insert(HealthBarTop)
-	.insert(EnemyName(String::from("dummy")));
-	commands.spawn_bundle(SpriteBundle {
-		sprite: Sprite {
-			color: Color::RED,
-			custom_size: Some(Vec2::new(HEALTHBAR_X, HEALTHBAR_Y)),
-			..default()
-		},
-		transform: Transform {
-			translation: Vec3::new( (crate::WIN_W/2. - HEALTHBAR_X/2.)-16., (crate::WIN_H/2. - HEALTHBAR_Y/2.)-16., 1.),
-			..default()
-		},
-		..default()
-	})
-	.insert(HealthBarBottom)
-	.insert(EnemyName(String::from("dummy")));
-	
-	
+    // spawn player health bar
+    commands.spawn_bundle(SpriteBundle {
+        sprite: Sprite {
+            color: Color::LIME_GREEN,
+            custom_size: Some(Vec2::new(HEALTHBAR_X, HEALTHBAR_Y)),
+            ..default()
+        },
+        transform: Transform {
+            translation: Vec3::new( (-crate::WIN_W/2. + HEALTHBAR_X/2.)+16., (crate::WIN_H/2. - HEALTHBAR_Y/2.)-16., 2.),
+            ..default()
+        },
+        ..default()
+    })
+    .insert(HealthBarTop)
+    .insert(PlayerName(String::from("Player")));
+    commands.spawn_bundle(SpriteBundle {
+        sprite: Sprite {
+            color: Color::RED,
+            custom_size: Some(Vec2::new(HEALTHBAR_X, HEALTHBAR_Y)),
+            ..default()
+        },
+        transform: Transform {
+            translation: Vec3::new( (-crate::WIN_W/2. + HEALTHBAR_X/2.)+16., (crate::WIN_H/2. - HEALTHBAR_Y/2.)-16., 1.),
+            ..default()
+        },
+        ..default()
+    })
+    .insert(HealthBarBottom)
+    .insert(PlayerName(String::from("Player")));
+
+    // spawn enemy health bar
+    commands.spawn_bundle(SpriteBundle {
+        sprite: Sprite {
+            color: Color::LIME_GREEN,
+            custom_size: Some(Vec2::new(HEALTHBAR_X, HEALTHBAR_Y)),
+            ..default()
+        },
+        transform: Transform {
+            translation: Vec3::new( (crate::WIN_W/2. - HEALTHBAR_X/2.)-16., (crate::WIN_H/2. - HEALTHBAR_Y/2.)-16., 2.),
+            ..default()
+        },
+        ..default()
+    })
+    .insert(HealthBarTop)
+    .insert(EnemyName(String::from("dummy")));
+    commands.spawn_bundle(SpriteBundle {
+        sprite: Sprite {
+            color: Color::RED,
+            custom_size: Some(Vec2::new(HEALTHBAR_X, HEALTHBAR_Y)),
+            ..default()
+        },
+        transform: Transform {
+            translation: Vec3::new( (crate::WIN_W/2. - HEALTHBAR_X/2.)-16., (crate::WIN_H/2. - HEALTHBAR_Y/2.)-16., 1.),
+            ..default()
+        },
+        ..default()
+    })
+    .insert(HealthBarBottom)
+    .insert(EnemyName(String::from("dummy")));
+    
+    
 }
+
 
 //animates the background image (just copied over from the start screen code in main.rs)
 pub fn animate_background(
@@ -1406,6 +1504,9 @@ pub fn enemy_take_action(
 
 		// choose an action for the enemy to take (punch, kick, or block)
 		let mut next_choice = rng.gen_range(0..3);	// generate 0, 1, or 2 since we have 3 options
+		
+
+
 		match level.current(){
 			Level::Level1 =>{
 				if(enemy_stats.health < 20.0){
@@ -1591,19 +1692,28 @@ pub fn enemy_kick(
 }
 
 pub fn enemy_block(
-	mut enemy_sprite: &mut Sprite,
-	mut enemy_actions: &mut Actions,
+    mut enemy_sprite: &mut Sprite,
+    mut enemy_actions: &mut Actions,
 ) {
-	enemy_actions.blocking = true;
-	enemy_sprite.color = Color::MAROON;	// change enemy sprite color so we know the blocking is working
+    enemy_actions.blocking = true;
+
+    enemy_sprite.color = Color::rgb(enemy_sprite.color.r()*0.5, 
+                                    enemy_sprite.color.g()*0.5, 
+                                    enemy_sprite.color.b()*0.5);    // change enemy sprite color so we know the blocking is working
 }
 
+
+
 pub fn enemy_unblock(
-	mut enemy_sprite: &mut Sprite,
-	mut enemy_actions: &mut Actions,
+    mut enemy_sprite: &mut Sprite,
+    mut enemy_actions: &mut Actions,
 ) {
-	enemy_actions.blocking = false;
-	enemy_sprite.color = Color::RED;
+    enemy_actions.blocking = false;
+    enemy_sprite.color = Color::rgb(enemy_sprite.color.r()*2.,
+                                    enemy_sprite.color.g()*2.,
+                                    enemy_sprite.color.b()*2.,);
+
+    
 }
 
 pub fn enemy_remove_attack(
