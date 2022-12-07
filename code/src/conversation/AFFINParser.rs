@@ -4,7 +4,7 @@ use std::str;
 use serde_json::{Value, from_str};
 
 
-const AFFIN:&'static [u8; 33051] = include_bytes!("./AFINN-111.json");
+const AFFIN:&'static [u8; 33050] = include_bytes!("./AFINN-111.json");
 
 pub struct SentimentScore {
         pub positive_score: f64,

@@ -11,6 +11,7 @@ use super::Level;
 extern crate rust_stemmers;
 use AFFINParser::SentimentScore; 
 use rust_stemmers::{Algorithm, Stemmer};
+use rand::Rng;
 
 #[derive(Component)]
 pub struct Hero;
@@ -41,6 +42,8 @@ pub struct Enemy{
     age: i8,
     job: String,
     description: String,
+    NICE_REPLIES: [&'static str;6], 
+    MEAN_REPLIES: [&'static str;6],
 }
 
 const NICE_RESPONSES: [&'static str;6] = ["Thank you!", "I really appreciate that!",
@@ -61,7 +64,9 @@ const EMPHASIZING_WORDS: [&'static str;17] = ["veri", "pretti", "extrem", "vast"
 const MAX_TURNS: i32 = 4;
 static mut CUR_TURN: i32 = 0;
 static mut CHECK_LEVEL: i32 = 1;
+static mut check_dups: Vec<i32> = Vec::new();
 
+// Spawn all entities to be used in the conversation part of the game
 // Spawn all entities to be used in the conversation part of the game
 pub fn setup_conversation(
 	mut commands: Commands,
@@ -147,19 +152,22 @@ pub fn setup_conversation(
     .insert(UserInput);
 	//info!("Setting Up: GameState: Conversation");
     
+
+    //BEGINNING OF MATCH STATEMENT TO SPAWN VARIOUS ENEMIES (SPRITE & CHAT) 
+    //BASED ON WHICH LEVEL IT IS AFTER THE CHECK OF LEVELS
     match level.current(){
         Level::Level1 =>{
             commands.spawn_bundle(SpriteBundle {
                 texture: asset_server.load("CathyRobinson.png"),
                 transform: Transform::from_xyz(0., 0., 1.),
                 sprite: Sprite {
-                    //color: Color::WHITE,
-                    //custom_size: Some(Vec2::new(200., 200.)),
                     ..default()
                 },
                 ..default()
-            }).insert(Enemy{start_tolerance: 100., cur_tol: 100., name: String::from("Catherine Robinson"), age: 27, job: String::from("Teacher"), description: String::from("nice")});
-            
+            }).insert(Enemy{start_tolerance: 50., cur_tol:50., name: String::from("Catherine Robinson"), age: 27, job: String::from("Teacher"), description: String::from("nice"), 
+            NICE_REPLIES: ["You are just the best!", "You're an absolute life-saver!", "I came over for sugar, but I feel like I'm leaving with a friend!", "You have no idea how much this means to me!", "You are so amazing!", "Wow, I spend so much time talking to kids - I forgot how nice adults could be!"],
+            MEAN_REPLIES: ["I've seen this kind of bad behavior before. Is everything okay at home?", "You're obviously in a bad mood. Let's count down from 5 to cool down.", "I have students who act like this all the time. Let's just breathe...Ooohh, Ahhh, Ooohh, Ahhh, Oooh, Ahhh", "Let's try using our kind words, sweetie.", "Those are bad words and you know that.", "Why are you acting like this? Talk to me."]}); //Vec::new()
+
             commands.spawn_bundle(Text2dBundle {
                 text: Text::from_section("Excuse me neighbor, can I borrow some sugar?", enemy_text_style),
                 text_2d_bounds: Text2dBounds {
@@ -183,10 +191,13 @@ pub fn setup_conversation(
                     ..default()
                 },
                 ..default()
-            }).insert(Enemy{start_tolerance: 50., cur_tol: 50., name: String::from("Billy Wickler"), age: 49, job: String::from("Cowboy Rancher"), description: String::from("brash")});
+
+            }).insert(Enemy{start_tolerance: 26., cur_tol:26., name: String::from("Billy Wickler"), age: 49, job: String::from("Cowboy Rancher"), description: String::from("brash"), 
+            NICE_REPLIES: ["I 'preciate you hearin' me out, boy.", "Yeah, I don' know - that darn dog gotta mind of its own.", "You are jus' so nice. No'thin like the bull nurses from back home.", "I wish I had someone like you on the farm, you so easy-goin'!", "Ya know, I like ya boy. You should come over for a base burner some time.", "Thought you was gon; give me some corral dust, but I 'preciate your response, boy."], 
+            MEAN_REPLIES: ["I used to tussle livestock! You dont wanna crawl my hump!", "You better hold your horses boy!", "Relax boy, I don' wanna have to give ya a lick an' a promise!", "Who do you think you talkin' to boy?", "Listen here Grandpa, don't go airin' your lungs at ME!", "Shut your big bazoo, Grandpa."]});
             
             commands.spawn_bundle(Text2dBundle {
-                text: Text::from_section("Listen here, my dog ran away earlier and I know you have him.", enemy_text_style),
+                text: Text::from_section("Listen here boy, my dog got to runnin' away and I think you took em!", enemy_text_style),
                 text_2d_bounds: Text2dBounds {
                     size: box_size,
                 },
@@ -208,10 +219,13 @@ pub fn setup_conversation(
                     ..default()
                 },
                 ..default()
-            }).insert(Enemy{start_tolerance: 70., cur_tol: 70., name: String::from("Gloria Brown"), age: 72, job: String::from("Retired Library Manager"), description: String::from("blunt")});
+
+            }).insert(Enemy{start_tolerance: 36., cur_tol:36., name: String::from("Gloria Brown"), age: 72, job: String::from("Retired Library Manager"), description: String::from("blunt"), 
+            NICE_REPLIES: ["Aww you're just the sweetest boy - I oughta pinch your cheecks!", "You're so nice, I'm gonna mke you a fixin' of my famous mac & cheese!", "Thank you for understanding. My eyesight and hearing ain't what it used to be.", "Oh bless your heart - you're just too kind!", "Neighbors like you sure do make life easier.", "Thank you! You're sweeter than my award-winning peach cobbler pie!"], 
+            MEAN_REPLIES: ["Who taught a young boy like you to talk like that?!", "You talk to me that way, we be fighting 'till the cows come home!", "You're getting too big for your britches talk'n like that!", "I outghta make you wash your mouth out with soap!", "Oh, I'll knock you into the middle of next week!", "You wouldn't know manners if it slapped you in the face!"]});
             
             commands.spawn_bundle(Text2dBundle {
-                text: Text::from_section("I need someone to read to me", enemy_text_style),
+                text: Text::from_section("Hi honey. I need someone to read to me...", enemy_text_style),
                 text_2d_bounds: Text2dBounds {
                     size: box_size,
                 },
@@ -232,7 +246,10 @@ pub fn setup_conversation(
                     ..default()
                 },
                 ..default()
-            }).insert(Enemy{start_tolerance: 30., cur_tol: 30., name: String::from("Jeffrey Madden"), age: 34, job: String::from("Stockbroker"), description: String::from("stressed")});
+            }).insert(Enemy{start_tolerance: 12., cur_tol:12., name: String::from("Jeffrey Madden"), age: 34, job: String::from("Stockbroker"), description: String::from("stressed"), 
+            NICE_REPLIES: ["I guess you're not as dumb as I thought.","If I knew you were so easygoing, I would've invited you to my party.","Why doesn't anyone like you? You're not that bad.","I'm glad you're understanding - just don't block my driveway again","Wow as a New Yorker, I'm not used to people being so nice.","Thanks for being such a chill guy."], 
+            MEAN_REPLIES: ["Why would you say that to me?", "You can't take me in a fight, so I suggest you calm down!", "I will literally call the police.", "Shut the **** up!", "You're the worst neighbor EVER!", "You don't want to take it there!"]});
+
             commands.spawn_bundle(Text2dBundle {
                 text: Text::from_section("You need to move your car NOW, I'm having a party and it's blocking the driveway", enemy_text_style),
                 text_2d_bounds: Text2dBounds {
@@ -255,7 +272,12 @@ pub fn setup_conversation(
                     ..default()
                 },
                 ..default()
-            }).insert(Enemy{start_tolerance: 10., cur_tol: 10., name: String::from("Katie Martinez"), age: 42, job: String::from("Mom"), description: String::from("mean")});
+
+            }).insert(Enemy{start_tolerance: 6., cur_tol:6., name: String::from("Karen Martinez"), age: 42, job: String::from("Mom"), description: String::from("mean"), 
+            NICE_REPLIES: ["I wish you would've been resonable before - we could've avoided all this.", "You're actually nice, you just make dumb decisions.", "I would think you would have learned to be smarter since you're so old, but at least you're kind.", "I guess you're not as bad as I thought.", "You're a horrible neighbor, but at least you're a pretty good person.", "You're not as bad as I thought, but we can work on the manners. I'll have my kids teach you."], 
+            MEAN_REPLIES: ["You are not a good person.", " My kids are honeslty smarter than you, you idiot!", "I will call the police on you RIGHT NOW!", 
+            "As a Mom who deals with toddlers - I can honestly say you're the most immature person I know.", "You need to be put on time-out for this behavior!", "I HATE having you as a neighbor - you need to move!"]});
+
             
             commands.spawn_bundle(Text2dBundle {
                 text: Text::from_section("Why are you ALWAYS having people over? Is it safe to have all these strangers in a family-friendly neighborhood?", enemy_text_style),
@@ -293,6 +315,11 @@ pub fn clear_conversation(
     commands.entity(hero_eid).despawn();
 	commands.entity(enemy_eid).despawn();
     commands.entity(background_eid).despawn();
+    //reinit vector array
+    unsafe{
+        check_dups = Vec::new();
+    }
+
 }
 
 // This takes the user's input and then prints every character onto the window using a text box
@@ -341,6 +368,8 @@ pub fn process_input(
     let mut simple_sentence: Vec<String> = Vec::new();
     let mut enem_dlg = enemy_dialogue.single_mut();
     let mut player_sent = true;
+    let mut rng = rand::thread_rng();
+    let mut random;
 
     for input in ev_reader.iter() {
         multiplier = 1.0;
@@ -416,10 +445,19 @@ pub fn process_input(
                 win_writer.send(ConvWinEvent());
             }
             let enemy_resp: &str;
+            random = rng.gen_range(0..6);
+            //println!("This is the number selected {}", random);
+            //check to make sure you won't get a response that's already been used
+            while(check_dups.contains(&random)){
+                //println!("It was a dup {}", random);
+                random = rng.gen_range(0..6);
+                //println!("this is the new one {}", random);
+            }
+            check_dups.push(random);
             if player_sent {
-                enemy_resp = NICE_RESPONSES[CUR_TURN as usize];
+                enemy_resp = enemy.NICE_REPLIES[random as usize];
             } else {
-                enemy_resp = MEAN_RESPONSES[CUR_TURN as usize];
+                enemy_resp = enemy.MEAN_REPLIES[random as usize];
             }
             //println!("Current Turn: {}", CUR_TURN);
             enem_dlg.sections[0].value = enemy_resp.to_string();
