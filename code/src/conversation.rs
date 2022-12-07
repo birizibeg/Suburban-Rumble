@@ -76,7 +76,7 @@ pub fn setup_conversation(
 
 ){
     unsafe {
-       println!("Current level: {}", CHECK_LEVEL); 
+       //println!("Current level: {}", CHECK_LEVEL); 
        CUR_TURN = 0; //reinitialize current # of turns
     }
     clear_color.0 = Color::NONE;
@@ -368,7 +368,7 @@ pub fn setup_conversation(
                 ..default()
 
             }).insert(Enemy{start_tolerance: random_tolerance, cur_tol: random_tolerance, name: String::from("Gloria Brown"), age: 72, job: String::from("Retired Library Manager"), description: String::from("blunt"), 
-            NICE_REPLIES: ["My husband really needs friends, and you're so sweet I think you'd be great for him!", "You have such good manners - your parents sho did do a good job!", "Aren't you just nicer than a cold sweet tea on a hot Summer day!", "This is the Southern hospitality I been missing since I moved up here!", "Now you are just the kindest little thing, I'll be coming here more often!", "I'm gonna make you some of my WORLD-famous green-bean casserole to express my gratitude"], 
+            NICE_REPLIES: ["My husband really needs friends, and you're so sweet I think you'd be great for him!", "You have such good manners - your parents sho did do a good job!", "Aren't you just nicer than a cold sweet tea on a hot summer day!", "This is the Southern hospitality I been missing since I moved up here!", "Now you are just the kindest little thing, I'll be coming here more often!", "I'm gonna make you some of my WORLD-famous green-bean casserole to express my gratitude"], 
             MEAN_REPLIES: ["Now you 'bout as dumb as log in the mud.", "You must want a knuckle sandiwch talking to me like that.", "Where I'm from in the South - those are fighting words!", "What happened to respecting your elders? You watch yourself.", "I'm fixin to call the police on you if you keep acting like this!", "You don't deserve to be friends with MY husband, you're a bad person."]});
             
             commands.spawn_bundle(Text2dBundle {
@@ -394,11 +394,11 @@ pub fn setup_conversation(
                 },
                 ..default()
             }).insert(Enemy{start_tolerance: random_tolerance, cur_tol: random_tolerance, name: String::from("Jeffrey Madden"), age: 34, job: String::from("Stockbroker"), description: String::from("stressed"), 
-            NICE_REPLIES: ["I guess you're not as dumb as I thought.","If I knew you were so easygoing, I would've invited you to my party.","Why doesn't anyone like you? You're not that bad.","I'm glad you're understanding - just don't block my driveway again","Wow as a New Yorker, I'm not used to people being so nice.","Thanks for being such a chill guy."], 
-            MEAN_REPLIES: ["Why would you say that to me?", "You can't take me in a fight, so I suggest you calm down!", "I will literally call the police.", "Shut the **** up!", "You're the worst neighbor EVER!", "You don't want to take it there!"]});
+            NICE_REPLIES: ["Oh...I guess that's fine.","Wow, you're actually really cool.","I don't know why all of our neighbors hate you, you're pretty okay.","I'm glad you're understanding - just don't block my driveway again","Wow as a New Yorker, I'm not used to people being so nice.","Dude, I'm seriously gonna invite you to my next party."], 
+            MEAN_REPLIES: ["You can't say that to me.", "Bro, do you even know who my dad is?", "**** you, old man.", "Ok, you watch your mouth now.", "Right...", "I'm actually calling the police this time."]});
 
             commands.spawn_bundle(Text2dBundle {
-                text: Text::from_section("You need to move your car NOW, I'm having a party and it's blocking the driveway", enemy_text_style),
+                text: Text::from_section("You need to mow your lawn. I can see it growing from my house and I don't like how long it is.", enemy_text_style),
                 text_2d_bounds: Text2dBounds {
                     size: box_size,
                 },
@@ -421,13 +421,13 @@ pub fn setup_conversation(
                 ..default()
 
             }).insert(Enemy{start_tolerance: random_tolerance, cur_tol:random_tolerance, name: String::from("Karen Martinez"), age: 42, job: String::from("Mom"), description: String::from("mean"), 
-            NICE_REPLIES: ["I wish you would've been resonable before - we could've avoided all this.", "You're actually nice, you just make dumb decisions.", "I would think you would have learned to be smarter since you're so old, but at least you're kind.", "I guess you're not as bad as I thought.", "You're a horrible neighbor, but at least you're a pretty good person.", "You're not as bad as I thought, but we can work on the manners. I'll have my kids teach you."], 
-            MEAN_REPLIES: ["You are not a good person.", " My kids are honeslty smarter than you, you idiot!", "I will call the police on you RIGHT NOW!", 
-            "As a Mom who deals with toddlers - I can honestly say you're the most immature person I know.", "You need to be put on time-out for this behavior!", "I HATE having you as a neighbor - you need to move!"]});
+            NICE_REPLIES: ["Well I guess you understand what I'm saying, then.", "I think I just misunderstood you because we are very different people.", "Well you know what they say...even a broken clock is right twice a day.", "You're not as terrible a neighbor as I thought.", "You're not such a bad person.", "My husband wouldn't hate you."], 
+            MEAN_REPLIES: ["My husband would hate you.", " My kids have better manners than you, you idiot!", "Don't you dare say that to me!", 
+            "I have never in my entire life met someone who is a rude as you are.", "Your mother should have taught you better!", "I am never talking to you again!"]});
 
             
             commands.spawn_bundle(Text2dBundle {
-                text: Text::from_section("Why are you ALWAYS having people over? Is it safe to have all these strangers in a family-friendly neighborhood?", enemy_text_style),
+                text: Text::from_section("Didn't I talk to you about having people over? I don't want my kids playing outside if a bunch of random people will be here.", enemy_text_style),
                 text_2d_bounds: Text2dBounds {
                     size: box_size,
                 },
@@ -530,7 +530,14 @@ pub fn process_input(
             let word = words.trim_end_matches(","); // Trim off any potential commas
             if word.to_string() != "a" && word.to_string() != "an" && word.to_string() != "the" {
                 let finished_word = &stemmer.stem(word).into_owned(); // Find the stem
-                simple_sentence.push(finished_word.to_string()); // Then add it to the simplified sentence
+                //stemmer changes words that end with y to end in i instead, the dictionary doesn't have use for those words so
+                //we make an exception here
+                 if word.to_string().chars().last().unwrap() == 'y'{
+                    simple_sentence.push(word.to_string());
+                }
+                else{
+                    simple_sentence.push(finished_word.to_string()); // Then add it to the simplified sentence
+                }
             }
         }
         // Once the sentence is simplified, search for the words
