@@ -303,7 +303,7 @@ pub fn setup_fight(
             .insert(Actions::new())
             .insert(ActionTimer(Timer::from_seconds(2., false)))    // enemy can perform one attack or block every 2 secs
             .insert(Enemy);
-        } /*Level::Level6 => {
+        } Level::Level6 => {
 			commands.spawn_bundle(SpriteBundle {
                 sprite: Sprite {
                     color: Color::ORANGE_RED,
@@ -393,7 +393,7 @@ pub fn setup_fight(
             .insert(Actions::new())
             .insert(ActionTimer(Timer::from_seconds(1.25, false)))    // enemy can perform one attack or block every 1.25 secs
             .insert(Enemy);
-		}*/
+		}
     }
     // spawn a dummy enemy sprite
     /* 
@@ -1632,7 +1632,7 @@ pub fn enemy_take_action(
 					next_choice = choices.into_iter().choose(&mut rng).unwrap();	// generate 0, 1, or 2 since we have 3 options
 				}
 			}
-			/*Level::Level6 => {
+			Level::Level6 => {
 				enemy_timer.0=Timer::from_seconds(0.4, false);
 				if enemy_stats.health < 25.0 {
 					let choices=[0,0,0,1,1,1,2];
@@ -1666,7 +1666,7 @@ pub fn enemy_take_action(
 					let choices=[0,0,0,1,1,1,2];
 					next_choice = choices.into_iter().choose(&mut rng).unwrap();	// generate 0, 1, or 2 since we have 3 options
 				}
-			}*/
+			}
 		}
 
 		match next_choice {
