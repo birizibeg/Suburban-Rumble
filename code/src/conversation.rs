@@ -292,6 +292,7 @@ pub fn setup_conversation(
                 ..default()
             }).insert(DialogueBox)
             .insert(EnemyDialogue);
+            
         }
     }
 
@@ -383,11 +384,20 @@ pub fn process_input(
             let word = words.trim_end_matches(","); // Trim off any potential commas
             if word.to_string() != "a" && word.to_string() != "an" && word.to_string() != "the" {
                 let finished_word = &stemmer.stem(word).into_owned(); // Find the stem
-                simple_sentence.push(finished_word.to_string()); // Then add it to the simplified sentence
+                if word.to_string().chars().last().unwrap() == 'y'{
+                    simple_sentence.push(word.to_string());
+                }
+                else{
+                    simple_sentence.push(finished_word.to_string()); // Then add it to the simplified sentence
+                }
             }
         }
+
         // Once the sentence is simplified, search for the words
         for word in &simple_sentence {
+
+            println!("{}", *word);
+
             let mut word_was_neg = false;
             //check if the word is present in our NEGATOR array
             for negative_word in NEGATOR_WORDS{
