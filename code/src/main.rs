@@ -486,9 +486,11 @@ fn conv_over(
 fn change_gamestate(
 	keys: Res<Input<KeyCode>>,
 	mut game_state: ResMut<State<GameState>>,
+	mut level: ResMut<State<Level>>
 
 ) {
 	if keys.pressed(KeyCode::Key1) {	// change GameState to Start
+		level.set(Level::Level1); //set level back to level 1
 		match game_state.set(GameState::Start) {
 			Ok(_) => info!("GameState: Start"),
 			Err(_) => (),

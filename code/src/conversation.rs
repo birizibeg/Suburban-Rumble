@@ -151,6 +151,13 @@ pub fn setup_conversation(
     }).insert(DialogueBox)
     .insert(UserInput);
 	//info!("Setting Up: GameState: Conversation");
+
+    //create a random number in case we are in the bonus rounds of the game and need a random tolerance
+    let mut rng = rand::thread_rng();
+    let mut random_tolerance = rng.gen::<f64>();
+    random_tolerance = random_tolerance * 10.;
+    //println!("This is the tolerance {}", random_tolerance);
+    //let mut random_tolerance = rng.gen_range(0..21.);
     
 
     //BEGINNING OF MATCH STATEMENT TO SPAWN VARIOUS ENEMIES (SPRITE & CHAT) 
@@ -193,11 +200,11 @@ pub fn setup_conversation(
                 ..default()
 
             }).insert(Enemy{start_tolerance: 26., cur_tol:26., name: String::from("Billy Wickler"), age: 49, job: String::from("Cowboy Rancher"), description: String::from("brash"), 
-            NICE_REPLIES: ["I 'preciate you hearin' me out, boy.", "Yeah, I don' know - that darn dog gotta mind of its own.", "You are jus' so nice. No'thin like the bull nurses from back home.", "I wish I had someone like you on the farm, you so easy-goin'!", "Ya know, I like ya boy. You should come over for a base burner some time.", "Thought you was gon; give me some corral dust, but I 'preciate your response, boy."], 
-            MEAN_REPLIES: ["I used to tussle livestock! You dont wanna crawl my hump!", "You better hold your horses boy!", "Relax boy, I don' wanna have to give ya a lick an' a promise!", "Who do you think you talkin' to boy?", "Listen here Grandpa, don't go airin' your lungs at ME!", "Shut your big bazoo, Grandpa."]});
+            NICE_REPLIES: ["I 'preciate you hearin' me out, old man.", "Yeah, I don' know - that darn dog gotta mind of its own.", "You are jus' so nice. No'thin like the bull nurses from back home.", "I wish I had someone like ya on the farm, ya so easy-goin'!", "Ya know, I like ya old man. Ya should come over for a base burner some time.", "Thought ya was gon' give me some corral dust, but I 'preciate your response, old man."], 
+            MEAN_REPLIES: ["I used to tussle livestock! Ya dont wanna crawl my hump!", "Ya better hold your horses old man!", "Relax old man, I don' wanna have to give ya a lick an' a promise!", "Who do you think ya talkin' to old man?", "Listen here Grandpa, don't go airin' your lungs at ME!", "Shut ya big bazoo, Grandpa."]});
             
             commands.spawn_bundle(Text2dBundle {
-                text: Text::from_section("Listen here boy, my dog got to runnin' away and I think you took em!", enemy_text_style),
+                text: Text::from_section("Listen here boy, my dog got to runnin' away and I hope you have 'em!", enemy_text_style),
                 text_2d_bounds: Text2dBounds {
                     size: box_size,
                 },
@@ -221,7 +228,7 @@ pub fn setup_conversation(
                 ..default()
 
             }).insert(Enemy{start_tolerance: 36., cur_tol:36., name: String::from("Gloria Brown"), age: 72, job: String::from("Retired Library Manager"), description: String::from("blunt"), 
-            NICE_REPLIES: ["Aww you're just the sweetest boy - I oughta pinch your cheecks!", "You're so nice, I'm gonna mke you a fixin' of my famous mac & cheese!", "Thank you for understanding. My eyesight and hearing ain't what it used to be.", "Oh bless your heart - you're just too kind!", "Neighbors like you sure do make life easier.", "Thank you! You're sweeter than my award-winning peach cobbler pie!"], 
+            NICE_REPLIES: ["Aww you're just the sweetest boy - I oughta pinch your cheecks!", "You're so nice, I'm gonna make you a fixin' of my famous mac & cheese!", "Thank you for understanding. My eyesight and hearing ain't what it used to be.", "Oh bless your heart - you're just too kind!", "Neighbors like you sure do make life easier for an old lady like me!", "You're sweeter than my award-winning peach cobbler pie!"], 
             MEAN_REPLIES: ["Who taught a young boy like you to talk like that?!", "You talk to me that way, we be fighting 'till the cows come home!", "You're getting too big for your britches talk'n like that!", "I outghta make you wash your mouth out with soap!", "Oh, I'll knock you into the middle of next week!", "You wouldn't know manners if it slapped you in the face!"]});
             
             commands.spawn_bundle(Text2dBundle {
@@ -248,7 +255,7 @@ pub fn setup_conversation(
                 ..default()
             }).insert(Enemy{start_tolerance: 12., cur_tol:12., name: String::from("Jeffrey Madden"), age: 34, job: String::from("Stockbroker"), description: String::from("stressed"), 
             NICE_REPLIES: ["I guess you're not as dumb as I thought.","If I knew you were so easygoing, I would've invited you to my party.","Why doesn't anyone like you? You're not that bad.","I'm glad you're understanding - just don't block my driveway again","Wow as a New Yorker, I'm not used to people being so nice.","Thanks for being such a chill guy."], 
-            MEAN_REPLIES: ["Why would you say that to me?", "You can't take me in a fight, so I suggest you calm down!", "I will literally call the police.", "Shut the **** up!", "You're the worst neighbor EVER!", "You don't want to take it there!"]});
+            MEAN_REPLIES: ["Why would you say that to me?", "You can't take me in a fight, so I suggest you calm down!", "I will literally call the police.", "Shut your freaking mouth!", "You're the worst neighbor EVER!", "You don't want to take it there!"]});
 
             commands.spawn_bundle(Text2dBundle {
                 text: Text::from_section("You need to move your car NOW, I'm having a party and it's blocking the driveway", enemy_text_style),
@@ -274,13 +281,13 @@ pub fn setup_conversation(
                 ..default()
 
             }).insert(Enemy{start_tolerance: 6., cur_tol:6., name: String::from("Karen Martinez"), age: 42, job: String::from("Mom"), description: String::from("mean"), 
-            NICE_REPLIES: ["I wish you would've been resonable before - we could've avoided all this.", "You're actually nice, you just make dumb decisions.", "I would think you would have learned to be smarter since you're so old, but at least you're kind.", "I guess you're not as bad as I thought.", "You're a horrible neighbor, but at least you're a pretty good person.", "You're not as bad as I thought, but we can work on the manners. I'll have my kids teach you."], 
+            NICE_REPLIES: ["I wish you would've been resonable before - we could've avoided all this.", "You're actually nice, you just make dumb decisions.", "I would think you would have learned to be smarter since you're so old, but at least you're kind.", "After this conversation, I don't hate you as much as I did before anymore.", "You're a horrible neighbor, but at least you're a good person.", "You're not as bad as I thought, but we can work on the manners. I'll have my kids teach you."], 
             MEAN_REPLIES: ["You are not a good person.", " My kids are honeslty smarter than you, you idiot!", "I will call the police on you RIGHT NOW!", 
             "As a Mom who deals with toddlers - I can honestly say you're the most immature person I know.", "You need to be put on time-out for this behavior!", "I HATE having you as a neighbor - you need to move!"]});
 
             
             commands.spawn_bundle(Text2dBundle {
-                text: Text::from_section("Why are you ALWAYS having people over? Is it safe to have all these strangers in a family-friendly neighborhood?", enemy_text_style),
+                text: Text::from_section("Why are you ALWAYS having people over? Don't you understand that having strangers in a family-friendly neighborhood is unsafe?", enemy_text_style),
                 text_2d_bounds: Text2dBounds {
                     size: box_size,
                 },
@@ -295,7 +302,7 @@ pub fn setup_conversation(
         }
 
 
-        //STRETCH GOAL IMPLEMENTATION
+        //STRETCH GOAL IMPLEMENTATION, USERS COME BACK
         Level::Level6 =>{
             commands.spawn_bundle(SpriteBundle {
                 texture: asset_server.load("CathyRobinson.png"),
@@ -304,12 +311,12 @@ pub fn setup_conversation(
                     ..default()
                 },
                 ..default()
-            }).insert(Enemy{start_tolerance: 50., cur_tol:50., name: String::from("Catherine Robinson"), age: 27, job: String::from("Teacher"), description: String::from("nice"), 
-            NICE_REPLIES: ["You are just the best!", "You're an absolute life-saver!", "I came over for sugar, but I feel like I'm leaving with a friend!", "You have no idea how much this means to me!", "You are so amazing!", "Wow, I spend so much time talking to kids - I forgot how nice adults could be!"],
-            MEAN_REPLIES: ["I've seen this kind of bad behavior before. Is everything okay at home?", "You're obviously in a bad mood. Let's count down from 5 to cool down.", "I have students who act like this all the time. Let's just breathe...Ooohh, Ahhh, Ooohh, Ahhh, Oooh, Ahhh", "Let's try using our kind words, sweetie.", "Those are bad words and you know that.", "Why are you acting like this? Talk to me."]}); //Vec::new()
+            }).insert(Enemy{start_tolerance: random_tolerance, cur_tol: random_tolerance, name: String::from("Catherine Robinson"), age: 27, job: String::from("Teacher"), description: String::from("nice"), 
+            NICE_REPLIES: ["You're awesome!", "I can bring you cookies more often if you're going to be this kind!", "I wish the teahcers I worked with were as great as you!", "I'm so glad we became friends!", "You are the best neighbor I've met here so far.", "This was really my pleasure - you're so great!"],
+            MEAN_REPLIES: ["Why are you being mean all of a sudden?", "How did your mood change so fast? Let's count down from 10 to cool down.", "You have such a potty mouth!", "Oh my -- I deal with bad kids all day and no one has ever spoken to me like this!", "How about you watch your tone?!?!?!", "I'm going to count to 5, by the time I'm done you better fix your attitude!"]}); //Vec::new()
 
             commands.spawn_bundle(Text2dBundle {
-                text: Text::from_section("Excuse me neighbor, can I borrow some sugar?", enemy_text_style),
+                text: Text::from_section("Hi friend, it's Cathy again! I brought you some of the cookies I baked!", enemy_text_style),
                 text_2d_bounds: Text2dBounds {
                     size: box_size,
                 },
@@ -332,12 +339,12 @@ pub fn setup_conversation(
                 },
                 ..default()
 
-            }).insert(Enemy{start_tolerance: 26., cur_tol:26., name: String::from("Billy Wickler"), age: 49, job: String::from("Cowboy Rancher"), description: String::from("brash"), 
-            NICE_REPLIES: ["I 'preciate you hearin' me out, boy.", "Yeah, I don' know - that darn dog gotta mind of its own.", "You are jus' so nice. No'thin like the bull nurses from back home.", "I wish I had someone like you on the farm, you so easy-goin'!", "Ya know, I like ya boy. You should come over for a base burner some time.", "Thought you was gon; give me some corral dust, but I 'preciate your response, boy."], 
-            MEAN_REPLIES: ["I used to tussle livestock! You dont wanna crawl my hump!", "You better hold your horses boy!", "Relax boy, I don' wanna have to give ya a lick an' a promise!", "Who do you think you talkin' to boy?", "Listen here Grandpa, don't go airin' your lungs at ME!", "Shut your big bazoo, Grandpa."]});
+            }).insert(Enemy{start_tolerance: random_tolerance, cur_tol: random_tolerance, name: String::from("Billy Wickler"), age: 49, job: String::from("Cowboy Rancher"), description: String::from("brash"), 
+            NICE_REPLIES: ["You might be my favorite bull nurse aroun'", "You know I don't let just anyone with my cattle - I guess I really like you.", "If you do a good job, I'll even let you milk ma cows! ", "You know - you're an honest man. I can get ya into the rancher business if ya want!", "I really like ya. We can have a hog-killin' good time together!", "Even though you're a tenderfoot - ya have a good at'tude so I can teach you everythin' I know."], 
+            MEAN_REPLIES: ["You better watch that wobblin' jaw before it gets ugly.", "What's you probl'm? Someone must'v put snakes in your chicken coop!", "You no more than a yellow-belly, I suggest you watch your mouth!", "Who are you talk'n to? You beter hang up ya fiddle before I get angry.", "Listen here Grandpa, you're barking up the wrong tree!", "I'll make ya a horse's ******* if ya keep talk'n to me like that!"]});
             
             commands.spawn_bundle(Text2dBundle {
-                text: Text::from_section("Listen here boy, my dog got to runnin' away and I think you took em!", enemy_text_style),
+                text: Text::from_section("Rancher Billy here. Since we're friends now, I want you to help me feed my cattle!", enemy_text_style),
                 text_2d_bounds: Text2dBounds {
                     size: box_size,
                 },
@@ -360,12 +367,12 @@ pub fn setup_conversation(
                 },
                 ..default()
 
-            }).insert(Enemy{start_tolerance: 36., cur_tol:36., name: String::from("Gloria Brown"), age: 72, job: String::from("Retired Library Manager"), description: String::from("blunt"), 
-            NICE_REPLIES: ["Aww you're just the sweetest boy - I oughta pinch your cheecks!", "You're so nice, I'm gonna mke you a fixin' of my famous mac & cheese!", "Thank you for understanding. My eyesight and hearing ain't what it used to be.", "Oh bless your heart - you're just too kind!", "Neighbors like you sure do make life easier.", "Thank you! You're sweeter than my award-winning peach cobbler pie!"], 
-            MEAN_REPLIES: ["Who taught a young boy like you to talk like that?!", "You talk to me that way, we be fighting 'till the cows come home!", "You're getting too big for your britches talk'n like that!", "I outghta make you wash your mouth out with soap!", "Oh, I'll knock you into the middle of next week!", "You wouldn't know manners if it slapped you in the face!"]});
+            }).insert(Enemy{start_tolerance: random_tolerance, cur_tol: random_tolerance, name: String::from("Gloria Brown"), age: 72, job: String::from("Retired Library Manager"), description: String::from("blunt"), 
+            NICE_REPLIES: ["My husband really needs friends, and you're so sweet I think you'd be great for him!", "You have such good manners - your parents sho did do a good job!", "Aren't you just nicer than a cold sweet tea on a hot Summer day!", "This is the Southern hospitality I been missing since I moved up here!", "Now you are just the kindest little thing, I'll be coming here more often!", "I'm gonna make you some of my WORLD-famous green-bean casserole to express my gratitude"], 
+            MEAN_REPLIES: ["Now you 'bout as dumb as log in the mud.", "You must want a knuckle sandiwch talking to me like that.", "Where I'm from in the South - those are fighting words!", "What happened to respecting your elders? You watch yourself.", "I'm fixin to call the police on you if you keep acting like this!", "You don't deserve to be friends with MY husband, you're a bad person."]});
             
             commands.spawn_bundle(Text2dBundle {
-                text: Text::from_section("Hi honey. I need someone to read to me...", enemy_text_style),
+                text: Text::from_section("Hello honey bun! I told my husband you were just the nicest guy, and now he wants to meet you.", enemy_text_style),
                 text_2d_bounds: Text2dBounds {
                     size: box_size,
                 },
@@ -386,7 +393,7 @@ pub fn setup_conversation(
                     ..default()
                 },
                 ..default()
-            }).insert(Enemy{start_tolerance: 12., cur_tol:12., name: String::from("Jeffrey Madden"), age: 34, job: String::from("Stockbroker"), description: String::from("stressed"), 
+            }).insert(Enemy{start_tolerance: random_tolerance, cur_tol: random_tolerance, name: String::from("Jeffrey Madden"), age: 34, job: String::from("Stockbroker"), description: String::from("stressed"), 
             NICE_REPLIES: ["I guess you're not as dumb as I thought.","If I knew you were so easygoing, I would've invited you to my party.","Why doesn't anyone like you? You're not that bad.","I'm glad you're understanding - just don't block my driveway again","Wow as a New Yorker, I'm not used to people being so nice.","Thanks for being such a chill guy."], 
             MEAN_REPLIES: ["Why would you say that to me?", "You can't take me in a fight, so I suggest you calm down!", "I will literally call the police.", "Shut the **** up!", "You're the worst neighbor EVER!", "You don't want to take it there!"]});
 
@@ -413,7 +420,7 @@ pub fn setup_conversation(
                 },
                 ..default()
 
-            }).insert(Enemy{start_tolerance: 6., cur_tol:6., name: String::from("Karen Martinez"), age: 42, job: String::from("Mom"), description: String::from("mean"), 
+            }).insert(Enemy{start_tolerance: random_tolerance, cur_tol:random_tolerance, name: String::from("Karen Martinez"), age: 42, job: String::from("Mom"), description: String::from("mean"), 
             NICE_REPLIES: ["I wish you would've been resonable before - we could've avoided all this.", "You're actually nice, you just make dumb decisions.", "I would think you would have learned to be smarter since you're so old, but at least you're kind.", "I guess you're not as bad as I thought.", "You're a horrible neighbor, but at least you're a pretty good person.", "You're not as bad as I thought, but we can work on the manners. I'll have my kids teach you."], 
             MEAN_REPLIES: ["You are not a good person.", " My kids are honeslty smarter than you, you idiot!", "I will call the police on you RIGHT NOW!", 
             "As a Mom who deals with toddlers - I can honestly say you're the most immature person I know.", "You need to be put on time-out for this behavior!", "I HATE having you as a neighbor - you need to move!"]});
@@ -577,7 +584,7 @@ pub fn process_input(
             }
             //CASE REACHED FINAL TURN AND PLAYER DIDN'T TRIGGER FIGHT,BUT ENEMY TOLERANCE LESS THAN HALF OF ORIGINAL
             // TODO: Fix this so it checks correctly
-            else if cur_tol <= (start_tol/2.) || sentiment_score.net_score < -1.0 { 
+            else if cur_tol <= (start_tol/2.) || !player_sent{  //if max turns done, and cur_tol is less than half or player said something mean
                 loss_writer.send(ConvLossEvent());
             }
             //MAX TURNS REACHED AND ENEMY IS MORE THAN HALF CONTENT, LEVEL WON
