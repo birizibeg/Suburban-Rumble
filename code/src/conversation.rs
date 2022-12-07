@@ -437,7 +437,7 @@ pub fn process_input(
             }
             //CASE REACHED FINAL TURN AND PLAYER DIDN'T TRIGGER FIGHT,BUT ENEMY TOLERANCE LESS THAN HALF OF ORIGINAL
             // TODO: Fix this so it checks correctly
-            else if cur_tol <= (start_tol/2.) { 
+            else if cur_tol <= (start_tol/2.) || sentiment_score.net_score < -1.0 { 
                 loss_writer.send(ConvLossEvent());
             }
             //MAX TURNS REACHED AND ENEMY IS MORE THAN HALF CONTENT, LEVEL WON
