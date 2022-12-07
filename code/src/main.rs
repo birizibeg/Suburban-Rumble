@@ -25,6 +25,11 @@ pub enum Level {
     Level3,
     Level4,
 	Level5,
+	Level6,
+	Level7,
+	Level8,
+	Level9,
+	Level10,
 }
 #[derive(Component, Deref, DerefMut)]
 struct PopupTimer(Timer);
@@ -450,6 +455,20 @@ fn conv_over(
 				level.set(Level::Level5);
 			}
 			Level::Level5 =>{ //if this is the last level, then we won the game
+				level.set(Level::Level6);
+			}
+			Level::Level6 =>{
+				level.set(Level::Level7);
+			}
+			Level::Level7 =>{
+				level.set(Level::Level8);
+			}
+			Level::Level8 =>{
+				level.set(Level::Level9);
+			}Level::Level9 =>{
+				level.set(Level::Level10);
+			}
+			Level::Level10 =>{ //if this is the last level, then we won the game
 				match game_state.set(GameState::Credits){
 					Ok(_) => info!("GameState: Credits"),
 					Err(_) => (),
@@ -580,6 +599,20 @@ fn fight_over(
 				level.set(Level::Level5);
 			}
 			Level::Level5 =>{ //if this is the last level, then we won the game
+				level.set(Level::Level6);
+			}
+			Level::Level6 =>{
+				level.set(Level::Level7);
+			}
+			Level::Level7 =>{
+				level.set(Level::Level8);
+			}
+			Level::Level8 =>{
+				level.set(Level::Level9);
+			}Level::Level9 =>{
+				level.set(Level::Level10);
+			}
+			Level::Level10 =>{ //if this is the last level, then we won the game
 				match game_state.set(GameState::Credits){
 					Ok(_) => info!("GameState: Credits"),
 					Err(_) => (),
